@@ -1802,7 +1802,7 @@ function TrapEncounterDialog({ rolls, onClose }: { rolls: DiceRoll[]; onClose: (
           <strong>{roll.actor}</strong><span>d20 {roll.dice[0]} + Speed {roll.modifier} = <b>{roll.total}</b></span>
           <em>{roll.success ? "Dodged" : "−4 HP"}</em>
         </article>)}</div>
-        <p className={`trap-outcome ${rolls.every((roll) => roll.success) ? "success" : "failure"}`}>{rolls.filter((roll) => roll.success).length} of {rolls.length} heroes dodged · target 15</p>
+        <p className={`trap-outcome ${rolls.every((roll) => roll.success) ? "success" : "failure"}`}>{rolls.filter((roll) => roll.success).length} of {rolls.length} heroes dodged · target {TRAP_DODGE_TARGET}</p>
       </> : <p className="trap-rolling-label" aria-live="polite">Rolling for all {rolls.length} heroes…</p>}
       <button className="primary big" onClick={onClose} disabled={!settled}>{settled ? "Continue" : "Rolling…"}</button>
     </section>

@@ -1,174 +1,411 @@
 # Dungeon Delvers
 
-Dungeon Delvers is a cooperative classroom dungeon adventure. A host opens an expedition and displays the shared dungeon board. Up to eight student groups join from their own devices, build parties of up to four heroes, and explore the same three-floor dungeon at their own pace.
+Dungeon Delvers is a team dungeon adventure for the classroom. Your group builds a party of heroes, explores a dark three-floor dungeon, fights monsters, buys supplies from a merchant, and tries to defeat the final boss and escape.
 
-## Play online
+**Play here:** [dungeon-divers.ggkids-japan-428.workers.dev](https://dungeon-divers.ggkids-japan-428.workers.dev/)
 
-Open [Dungeon Delvers](https://dungeon-divers.ggkids-japan-428.workers.dev/) to host an expedition or use a room link from your host. No student accounts are required.
+![The Dungeon Delvers home screen](docs/screenshots/home.jpg)
 
-## Goal of the game
+**In this guide**
 
-Each group explores three floors, finds each floor's key, and reaches the stairway to descend. On the final floor, defeat the boss to claim the key and escape through the exit. A group that escapes has finished its run; the other groups can continue. The expedition ends when every group has escaped or been defeated.
+- [The goal](#the-goal)
+- [Joining and building your party](#joining-and-building-your-party)
+- [The three stats](#the-three-stats)
+- [The four classes](#the-four-classes)
+- [Exploring the dungeon](#exploring-the-dungeon)
+- [Battles](#battles)
+- [Monsters and bosses](#monsters-and-bosses)
+- [Items and the merchant](#items-and-the-merchant)
+- [Gold, XP and levelling up](#gold-xp-and-levelling-up)
+- [How you lose](#how-you-lose)
+- [Create your own heroes, monsters and maps](#create-your-own-heroes-monsters-and-maps)
+- [Fact sheet and Kahoot questions](#fact-sheet-and-kahoot-questions)
+- [For teachers: running a game](#for-teachers-running-a-game)
+- [For developers](#for-developers)
 
-Discoveries are shared on the host's map, while each group has its own location, heroes, health, gold, and inventory. Groups can explore simultaneously, but only one group can fight a particular monster at a time.
+---
 
-## Hosting an expedition
+## The goal
 
-1. On the home page, optionally choose a saved map. You can also open the Map Maker, Character Creator, or Monster Creator before play.
-2. Select **Host an expedition**. A room code and QR code appear on the host screen.
-3. Have each group scan the QR code or open the join link. If the QR code is unavailable, use **Copy join link** on the host screen; the room code is part of that link.
-4. Each group creates its name and selects one to four heroes. The host screen shows which groups have joined.
-5. Select **Enter the dungeon** when everyone is ready.
-6. Keep the host screen open to follow the shared map, party health, active battles, dice rolls, and expedition log.
+1. Explore each floor and find its **key**.
+2. Take the **stairs** down to the next floor.
+3. On floor 3, defeat the **boss**. The boss holds the last key.
+4. Walk through the **exit** behind the boss to escape. You win!
 
-There can be up to eight groups of up to four heroes in one expedition, for a maximum of 32 heroes. A group can join only while the host is in the lobby. **Return to lobby** resets the expedition's floor progress, group gold, hero levels, and inventory, then lets the host start again with the same room and groups.
+There are **3 floors**. Up to **8 groups** play at the same time, each with its **own** position, heroes, gold and items.
 
-## Joining and building a party
+### Some things are shared between groups
 
-Give your group a name, then create one to four heroes:
+Your group is not alone down there. These things are shared by every group on the floor:
 
-- Choose a class, set a hero name, and select a sprite color.
-- Choose a saved character design, make a new hero, or use **Choose a random hero**.
-- For a new hero, roll stats and assign the three results to Damage, Accuracy, and Speed. Each result is 2d6 + 3, so every stat is between 5 and 15. Damage is how hard attacks hit, Accuracy is the chance to land an attack, and Speed dodges traps and monster attacks and decides who acts first. Reroll if you want, then assign each result to a different stat.
-- Saved character designs use their saved stats, capped to the 5–15 range. Changing a selected hero's class clears the design and its stats, so roll new stats before joining.
-- Each hero needs a unique name within the group.
+- **Monsters.** If one group defeats a monster, it stays defeated for everyone.
+- **Chests.** Each chest can only be opened once, so the first group gets the prize.
+- **Keys.** When one group finds a floor's key, the stairs unlock for everyone.
+- **The map.** Tiles discovered by one group are revealed for all groups.
 
-Every hero starts with full class-based HP, regardless of their rolled stats:
+Only one group can fight a monster at a time. If another group is already fighting it, you have to wait.
 
-| Class | Starting HP | Class ability |
-| --- | ---: | --- |
-| Warrior | 25 | **Guard** to reduce the next hit against the guarding hero. |
-| Thief | 15 | **Mug** a monster for 8 gold while dealing damage. |
-| Archer | 15 | **Dual shot** fires two independently checked arrows. |
-| Mage | 20 | **Heal** a living ally of your choice. |
+---
 
-All parties begin with two Healing Potions and one Phoenix Feather. Hero stats affect battle and traps; a hero's class determines their starting HP and class ability.
+## Joining and building your party
 
-## Exploring
+Scan the QR code on your teacher's screen, then:
 
-The player screen shows a first-person view, movement controls, a minimap, party status, inventory, and recent events.
+1. Type a **group name**.
+2. Add **1 to 4 heroes**. Each hero needs a different name.
+3. For each hero, choose a **class** and a **colour**, then roll their stats. You can also pick a saved hero or tap **Choose a random hero**.
+4. Tap **Join party**, then wait for your teacher to start the game.
 
-- Use the directional pad to move forward or backward and turn left or right. You can also open the larger map and move to an adjacent tile from there.
-- Only neighboring tiles are reachable in one move. The minimap reveals nearby paths; entering a tile reveals its contents.
-- Each group explores independently. The host board tracks parties and shared discoveries. Defeated monsters remain marked as corpses.
-- Find the floor key before descending. Your group can stand on the exit before finding the key, but must return to it after the key is found to continue.
-- The Bestiary and Bounties buttons open book-style overlays. Select an entry to read it, then close the book to return to the game. The player-side Items tab explains the available items.
+No accounts are needed. Use made-up names, not your personal information, because other groups can see them.
 
-### Floors, keys, and monsters
+![Building a party: choosing a class, rolling stats and picking a colour](docs/screenshots/build-party.jpg)
 
-Floor 3 is always one of five large built-in mazes (`app/boss-floors.ts`), chosen at random: The Coiled Descent, The Serpent Galleries, The Hollow Warrens, The Winding Catacombs, or The Sundered Halls. They hold more monsters and traps than other floors, and the exit can only be reached through the boss. Floors 1 and 2 use generated layouts unless saved custom maps are available. The host can select a map to guarantee it is used on floor 1. Up to two saved maps may be used across those floors; if the host selects none, maps are chosen randomly. A key chamber in a generated floor is guarded by a random monster from the library; custom maps have a key tile without a required guardian. The third floor is a randomly selected boss dungeon with a chest, a trap, a regular monster, a boss, and the exit.
+**Every party starts with 2 Healing Potions and 1 Phoenix Feather.**
 
-All regular monsters come from the saved Monster Creator library; if the library is empty, rooms are empty and keys are unguarded. The final floor uses one of five hand-drawn bosses: The Hollow King, Maw of Greed, The Unblinking, Cinderheart, or Gloomfang Bloom. In the Bestiary, each creature's entry includes its description, damage range, Speed, and bounty. The Bounty Ledger focuses on the reward rather than repeating the monster's combat stats.
+---
 
-### Traps and treasure
+## The three stats
 
-- Each living hero rolls separately when the group triggers a trap: **d20 + Speed**. A total of **20 or higher** dodges it; otherwise that hero takes **4 damage**. Each group triggers a given trap once.
-- A chest gives one random reward: **10–25 gold**, a Healing Potion, a Phoenix Feather, or a Bomb.
+Every hero has three stats. Each one is rolled with **two six-sided dice plus 3**, so a stat is always between **5 and 15**. You roll three numbers, then choose which number goes on which stat.
+
+| Stat | What it does | Why you want it high |
+|---|---|---|
+| **Damage** (DMG) | How hard your attacks hit | Monsters go down faster |
+| **Accuracy** (ACC) | Your chance to land an attack | You miss less often |
+| **Speed** (SPD) | Dodging traps, dodging monster attacks, and going first | You get hit less and act sooner |
+
+### What the numbers mean
+
+| Stat value | Chance to hit (Accuracy) | Attack damage (Damage) | Chance to dodge a monster (Speed) | Chance to dodge a trap (Speed) |
+|---:|---:|---:|---:|---:|
+| 5 | 35% | 3–5 | 15% | 30% |
+| 10 | 50% | 6–8 | 30% | 55% |
+| 15 | 65% | 9–11 | 45% | 80% |
+
+---
+
+## The four classes
+
+A hero's **class** decides their health (HP) and their special ability. Stats do not change a hero's starting HP.
+
+| Class | HP | Special ability | What it does |
+|---|---:|---|---|
+| **Warrior** | 25 | **Guard** | Blocks 2 damage from the next attack. Monsters aim for a guarding hero first, so the Warrior can protect the team. |
+| **Thief** | 15 | **Mug** | Never misses. Deals half the Thief's Damage and steals **8 gold**. |
+| **Archer** | 15 | **Dual Shot** | Fires **2 arrows**. Each arrow rolls to hit separately. |
+| **Mage** | 20 | **Heal** | You choose an injured ally and restore up to **5 HP**. Heal does not hurt the monster. |
+
+Using a special ability uses up that hero's turn.
+
+---
+
+## Exploring the dungeon
+
+![The exploring screen with the first-person view, controls, minimap, merchant and inventory](docs/screenshots/exploring.jpg)
+
+- **Move and turn** with the arrow buttons at the bottom.
+- **The minimap** shows the tiles you have discovered. The yellow dot is your party.
+- **The top bar** shows your party's total HP and stats, your gold, and whether you have the key.
+- **The tabs** open the Bestiary (monster information), Items, and Bounties (monster rewards).
+- **The Merchant** is on the side panel, and your items are under him.
+
+### The floors
+
+| Floor | What it is like |
+|---|---|
+| **Floors 1 and 2** | Made by your class in the Map Maker, or created by the game. A monster may guard the key. |
+| **Floor 3** | One of **5 huge mazes**, picked at random. It has many more monsters and traps, and the boss guards the exit. Students cannot design this floor. |
+
+The 5 mazes are **The Coiled Descent**, **The Serpent Galleries**, **The Hollow Warrens**, **The Winding Catacombs** and **The Sundered Halls**.
+
+### Traps
+
+You cannot see a trap until you step on it. When a trap goes off, **every living hero** rolls one 20-sided die and adds their Speed.
+
+- A total of **20 or more** means that hero dodges it.
+- Anything lower means that hero loses **4 HP**.
+
+Each group only sets off a trap once.
+
+![A trap: each hero rolls a die and adds their Speed. They need 20 to dodge](docs/screenshots/trap.jpg)
+
+### Chests
+
+A chest gives one random prize, and each prize is equally likely:
+
+- **10–25 gold**
+- A Healing Potion
+- A Phoenix Feather
+- A Bomb
+
+![Opening a chest](docs/screenshots/chest.jpg)
+
+---
 
 ## Battles
 
-Entering an undefeated monster's tile starts a battle for that group. The battle screen shows the monster's health, damage range, Speed, party health, initiative order, and available actions.
+Stepping onto a monster's tile starts a battle. The monster is on the left and your party is on the right.
 
-1. Turns are ordered by Speed, fastest first. Each living hero and the monster gets one turn per round; the monster may act before some heroes if its Speed is higher.
-2. On a hero's turn, choose **Attack**, the class ability, **Guard** (Warrior only), or **Run**. Heroes who are waiting for their initiative turn cannot act yet.
-3. Attacks use Accuracy to determine hit chance: **50% + 3% for each point of Accuracy above 10**, with a minimum of 35% and maximum of 90%. A successful basic attack deals 65% of the hero's Damage stat, rounded down, plus a random 0–2 damage.
-4. When the monster's turn arrives, it attacks a living hero (a boss also strikes up to two more). Each target has a **Speed × 3%** chance to dodge it and take no damage (15% at Speed 5, 30% at Speed 10, 45% at Speed 15). Guard reduces the next hit by 2 damage.
-5. Defeating a monster awards its bounty as group gold and XP to the hero who lands the final blow. A hero levels up at 20 XP per current level; each level adds 1 maximum HP, Damage, Accuracy, and Speed. Damage cannot exceed 20; Accuracy and Speed cannot exceed 18.
+![The battle screen with the turn order, monster health, commands and party health](docs/screenshots/battle.jpg)
 
-Class abilities:
+- **The strip at the top** shows the turn order for this round.
+- **The bottom left** shows your commands.
+- **The bottom right** shows each hero's health.
 
-- **Warrior — Guard:** brace to reduce the next incoming hit by 2 additional damage.
-- **Thief — Mug:** gain 8 gold and deal damage equal to half the Thief's Damage stat, rounded down (minimum 1).
-- **Archer — Dual shot:** fire two arrows; each arrow has its own hit check and deals 65% of the Archer's Damage stat, rounded down (minimum 1).
-- **Mage — Heal:** choose a living, injured ally and restore up to 5 HP. It deals no damage.
+### Turn order
 
-**Running** has a **10%** chance to work (d100, 10 or lower) and returns the party to the tile they came from; otherwise the hero's turn is spent and the battle continues. The monster stays on its tile, so stepping back onto it starts a new battle against a monster at full health.
+The **fastest goes first**. Everyone, including the monster, gets one turn each round, in order of Speed from highest to lowest.
 
-Regular monsters scale with group size: 12 HP and 0.75× damage against one hero, 20 HP and 1× against two, 35 HP and 1.25× against three, and 50 HP and 1.75× against four. Their hits never exceed 10 damage, so they cannot take out a healthy hero in one blow. Bosses do not scale: they always have 90 HP and their listed damage, and each attack strikes up to three heroes, with each hero rolling their own damage and dodge. The battle screen shows the actual damage; saved monster designs and the Bestiary keep their original values. Monsters use their own Speed.
+### Your commands
 
-## Items, defeat, and rewards
+| Command | What it does |
+|---|---|
+| **Attack** | Roll to hit using Accuracy. If it hits, deal damage based on your Damage stat. |
+| **Class ability** | Guard, Mug, Dual Shot or Heal, depending on the hero. |
+| **Items** | Use something from your inventory. Most items use up your turn. |
+| **Run** | A **10% chance** to escape. If it fails, you lose your turn. |
 
-Inventory belongs to the group and can be opened from the player screen:
+### Running away
 
-| Item | Merchant price | Effect |
-| --- | ---: | --- |
-| Healing Potion | 15 gold | Restore up to 8 HP to one living hero. |
-| Party Tonic | 30 gold | Restore up to 5 HP to every living hero. |
-| Smoke Bomb | 40 gold | Escape from a battle without fail. The monster stays on its tile. |
-| Bomb | 50 gold | Deal 12 damage to a monster during battle. |
-| Phoenix Feather | 100 gold | Revive one fallen hero at half of their maximum HP. |
+Running rarely works, but each hero can try on their turn. If it works, your party returns to the tile you came from. **The monster stays there**, and if you step back on its tile you fight it again, with its health back to full.
 
-The merchant is in the side panel while exploring. Groups can trade with him at any time outside a battle, spending their own gold. Prices are set in `app/items.ts`.
+A **Smoke Bomb** always lets you escape.
 
-Potions, Party Tonics, and Phoenix Feathers can be used outside battle when their target is valid; Bombs and Smoke Bombs can only be used during battle. In battle, a Potion, Party Tonic, or Bomb uses the active hero's turn. A Phoenix Feather can revive a fallen hero even when it is not a living hero's turn. A group is defeated only when all of its heroes are down and it has no Phoenix Feather left. Other groups are unaffected and can carry on.
+### Healing
 
-Monster bounties award gold on victory; chests can add gold or items. Gold is tracked per group and contributes to the expedition total, so gold spent at the merchant no longer counts towards it.
+When the Mage uses Heal, you choose who to heal. Heroes already at full health are greyed out.
 
-## Workshop: saved content
+![The Mage choosing which ally to heal](docs/screenshots/heal.jpg)
 
-Workshop libraries are available from the home page. Maps and designs are shared by everyone using the same game deployment.
+### When the monster attacks
 
-### Map Maker
+A normal monster attacks **one hero** each round. A hero can **dodge**: their chance is **Speed × 3%**. If they dodge, they take no damage.
 
-Create a connected map on a 13 × 13 grid using the path, start, monster, chest, trap, key, exit, and erase tools.
+Monsters aim at a hero who is guarding first. Otherwise they usually hit the hero who just took a turn.
 
-- Every path tile is walkable. Connected clusters of path tiles form rooms; no separate room brush is needed.
-- A valid map must have connected tiles, at least one starting point on an unoccupied path tile, exactly one key, and exactly one exit.
-- Place monsters, chests, and traps on separate tiles. The map's monster brush offers monsters from the library. If a placed monster is later deleted, starting a game swaps in another library monster.
-- Save, edit, select, or delete maps in the library. A selected map is guaranteed to be floor 1 in the next expedition. Up to one additional saved map may be randomly used on floor 2; if no map is selected, saved maps may be randomly used on either floor.
+### Winning
+
+When the monster's HP reaches 0, your group gets its **bounty** in gold.
+
+![Winning a battle](docs/screenshots/victory.jpg)
+
+---
+
+## Monsters and bosses
+
+### Normal monsters
+
+Monsters are designed by students in the Monster Creator. They get stronger when they fight bigger parties, so every party size gets a fair fight.
+
+| Heroes in your party | Monster HP | Monster damage |
+|---:|---:|---:|
+| 1 | 12 | × 0.75 |
+| 2 | 20 | × 1 |
+| 3 | 35 | × 1.25 |
+| 4 | 50 | × 1.75 |
+
+**A normal monster can never hit for more than 10 damage.** The weakest hero has 15 HP, so a healthy hero can't be knocked out in one hit.
+
+The battle screen shows a monster's real damage for your party. The Bestiary shows its original, unscaled numbers.
+
+![A monster's entry in the Bestiary](docs/screenshots/bestiary.jpg)
+
+### Bosses
+
+A boss waits on floor 3. One of 5 is chosen at random. Bosses are **always 90 HP**, however many heroes you have, and **each attack hits up to 3 heroes at once**. Every hero rolls their own dodge.
+
+![A boss striking 3 heroes at once. One dodged and two were hit](docs/screenshots/boss.jpg)
+
+| Boss | Damage per hit | Speed | Bounty |
+|---|---:|---:|---:|
+| **The Hollow King** | 5–10 | 10 | 60 gold |
+| **Maw of Greed** | 4–9 | 6 | 80 gold |
+| **The Unblinking** | 4–10 | 14 | 60 gold |
+| **Cinderheart** | 5–11 | 12 | 60 gold |
+| **Gloomfang Bloom** | 5–9 | 8 | 60 gold |
+
+---
+
+## Items and the merchant
+
+Items belong to the whole group. Tap an item in your inventory to use it.
+
+| Item | Price | What it does | When can you use it? |
+|---|---:|---|---|
+| **Healing Potion** | 15 gold | Restores up to **8 HP** to one living hero | Any time |
+| **Party Tonic** | 30 gold | Restores up to **5 HP** to every living hero | Any time |
+| **Smoke Bomb** | 40 gold | Escapes from a battle, **every time** | Battle only |
+| **Bomb** | 50 gold | Deals **12 damage** to a monster | Battle only |
+| **Phoenix Feather** | 100 gold | Brings a fallen hero back at **half HP** | Any time |
+
+### The merchant
+
+The merchant travels the dungeon with a huge backpack. Tap his card on the side panel to trade with him. You can do this at any time, except during a battle. Tap him to hear what he has to say!
+
+![The merchant's shop](docs/screenshots/merchant.jpg)
+
+---
+
+## Gold, XP and levelling up
+
+**You earn gold from:**
+
+- Defeating monsters (their **bounty**)
+- Chests (10–25 gold)
+- The Thief's Mug (8 gold each time)
+
+**Gold** belongs to the whole group, and you spend it at the merchant. The final expedition score counts the gold groups still have at the end, so spending lowers it.
+
+**XP** goes only to the hero who lands the **final blow** on a monster. That hero gains XP equal to the monster's bounty.
+
+**Levelling up** takes **20 XP × your current level**, so level 1 needs 20 XP and level 2 needs 40 XP. Each level gives that hero:
+
+- +1 maximum HP
+- +1 Damage
+- +1 Accuracy
+- +1 Speed
+
+Levelling can raise stats beyond 15, up to **20 Damage**, **18 Accuracy** and **18 Speed**.
+
+---
+
+## How you lose
+
+- A hero at **0 HP** has **fallen** and can't act. A Phoenix Feather brings them back.
+- Your group is out only when **all heroes have fallen and you have no Phoenix Feathers left**.
+- Other groups keep playing if your group is out.
+
+The game ends when every group has either escaped or been defeated.
+
+---
+
+## Create your own heroes, monsters and maps
+
+Three workshops are on the home screen. Everything saved there is shared with everyone who uses this game, so keep names and designs classroom-friendly.
 
 ### Character Creator
 
-Create class-specific characters for students to select when forming a party. Choose a class, name, head, torso, arms, legs, and colors, then roll and assign Damage, Accuracy, and Speed. Character body-part choices differ by class; for example, Warriors can wear plate armor and Archers can wear a feathered Robin Hood–style hat. Each part can be colored independently. Saved designs retain their appearance and rolled stats until edited.
+Pick a class, change the head, torso, arms, legs and colours, then roll stats. Students can choose saved heroes when they join a game.
+
+![The Character Creator](docs/screenshots/character-creator.jpg)
 
 ### Monster Creator
 
-Assemble a monster from head, torso, arms, legs, tail, and wings. Choose each part's color, then roll the monster's damage range, Speed, and bounty. The damage range uses one d6 for minimum damage and two d6 added together for maximum damage; Speed is 3d6 and bounty is 5 × 2d6. Saved creatures are added to the Bestiary and can appear as regular monsters in future procedurally generated encounters. They do not replace the built-in boss encounters.
+Pick a head, torso, arms, legs, tail, wings and colours, then roll the monster's stats with dice. Your monster can then appear in games on any floor.
 
-## Music and interface
+| Monster stat | How it is rolled | Range |
+|---|---|---:|
+| Lowest damage | 1 die | 1–6 |
+| Highest damage | Lowest damage + 1 die | 2–12 |
+| Speed | 3 dice added together | 3–18 |
+| Bounty | 2 dice added together × 5 | 10–60 gold |
 
-Use the music controls at the top of the screen to play or pause the background music and switch between the **Dungeon** and **Rune** tracks. The audio files are in `public/music/`.
+Bosses can't be made in the Monster Creator.
 
-## Saving and privacy
+![The Monster Creator](docs/screenshots/monster-creator.jpg)
 
-- The expedition room, group progress, saved maps, and saved designs are stored in the game's database.
-- The host's browser stores its room identity, and each player group is remembered in its browser tab. Keep the host browser and player tabs open during play; refreshing a player page in the same tab preserves that group's identity. A new player tab has a separate identity.
-- Rooms inactive for more than 24 hours may be cleaned up when a new expedition is created.
-- No student accounts are required. Group and hero names are visible to the other participants in the room; use classroom-appropriate display names and avoid personal information.
-- Saved maps and designs are shared within the deployment's library. The creator library is not an individual student account or private workspace.
-- Deleting a saved map or design requires the delete key. The server checks it against a SHA-256 hash in `app/delete-key.ts`, which also explains how to change the key.
+### Map Maker
 
-## Run locally in a classroom
+Draw a dungeon on a **13 × 13 grid** using Path, Start, Monster, Chest, Trap, Key and Exit tiles. A map needs:
 
-The hosted site above can be used on devices with internet access. To run a local copy, the host computer and student devices must be on the same Wi-Fi network.
+- All of its tiles connected
+- At least 1 start
+- Exactly 1 key
+- Exactly 1 exit
 
-### Windows
+Saved maps can be used for floors 1 and 2.
 
-1. Install Node.js 22.13 or newer on the host computer.
-2. Double-click `START_GAME.bat`.
-3. On first launch, the script installs dependencies, builds the game, and prepares a local database. This can take several minutes.
-4. Keep the command window open. Use the classroom address printed in that window on student devices. If Windows Firewall asks, allow access on private networks.
+![The Map Maker](docs/screenshots/map-maker.jpg)
 
-### macOS
+---
 
-1. Install Node.js 22.13 or newer on the host computer.
-2. Double-click `START_GAME.command`. If macOS blocks it, allow the script to run in Privacy & Security settings.
-3. On first launch, the script installs dependencies, builds the game, and prepares a local database. This can take several minutes.
-4. Keep the Terminal window open and use the displayed classroom address on student devices.
+## Fact sheet and Kahoot questions
 
-If devices on the same Wi-Fi cannot open the local address, the school network may prevent device-to-device connections. Test before class; a private hotspot is a possible backup.
+### Words to know
 
-## Deploy changes to Cloudflare
+| Word | Meaning |
+|---|---|
+| **HP** | Hit points, or health. At 0 HP, a hero falls. |
+| **XP** | Experience points. Enough XP makes a hero level up. |
+| **d6, d20, d100** | A die with 6, 20 or 100 sides. |
+| **Stat** | A number showing what a hero is good at: Damage, Accuracy or Speed. |
+| **Bounty** | The gold reward for defeating a monster. |
+| **Party** | A group's team of 1 to 4 heroes. |
+| **Fallen** | A hero at 0 HP who can't act until revived. |
 
-The Cloudflare login is stored on your computer, not in the project ZIP. On a new Windows computer, install Node.js 22.13 or newer, unzip the project, then double-click `SETUP_AND_DEPLOY.bat`. The script installs project dependencies, opens the Cloudflare browser login if needed, then builds and deploys the app. Sign in to the Cloudflare account that owns the existing Dungeon Delvers deployment when prompted.
+### Key numbers
 
-After the first run, double-clicking the same file again repeats the setup check and deploys your latest changes.
+| Fact | Number |
+|---|---|
+| Floors in the dungeon | 3 |
+| Groups in one game (maximum) | 8 |
+| Heroes in a group (maximum) | 4 |
+| Heroes in one game (maximum) | 32 |
+| Classes | 4 |
+| Lowest and highest rolled stat | 5 and 15 |
+| Warrior / Mage / Thief / Archer HP | 25 / 20 / 15 / 15 |
+| Starting items | 2 Healing Potions, 1 Phoenix Feather |
+| Roll needed to dodge a trap (d20 + Speed) | 20 or more |
+| Trap damage | 4 HP |
+| Chance that Run works | 10% |
+| Most damage from a normal monster's hit | 10 |
+| Boss HP | 90 |
+| Heroes a boss can hit at once | 3 |
+| Number of bosses / floor 3 mazes | 5 / 5 |
+| Monster HP against a party of 4 | 50 |
+| Mage Heal | Up to 5 HP |
+| Thief's Mug | 8 gold |
+| Price order, cheapest to dearest | Potion 15, Tonic 30, Smoke Bomb 40, Bomb 50, Feather 100 |
 
-The production database ID is configured in `scripts/deploy-cloudflare.mjs`. The script targets the existing Cloudflare account, Worker, and database; it does not create a new Cloudflare project or apply database migrations. If you are deploying under a different Cloudflare account, that account needs its own Worker and D1 database setup before deployment.
+### Sample Kahoot questions
 
-### Developer commands
+The correct answer is in **bold**.
 
-This project uses Node.js 22.13+, pnpm 11.25, vinext, and Wrangler. Useful commands from the project directory:
+1. What does the **Accuracy** stat do? **Your chance to land an attack** / How hard you hit / Your turn order / Your HP
+2. Which stat helps you dodge traps? Damage / Accuracy / **Speed** / HP
+3. Which class has the most HP? **Warrior** / Thief / Archer / Mage
+4. Which class can heal allies? Warrior / Thief / Archer / **Mage**
+5. Which ability never misses and steals gold? Guard / **Mug** / Dual Shot / Heal
+6. What number do you need to dodge a trap, after adding your Speed to your d20? 10 / 15 / **20** / 25
+7. What is the chance that Run works? **10%** / 25% / 50% / 100%
+8. What happens if you step back onto a monster you ran away from? Nothing / You get its gold / **You fight it again, at full health** / It follows you
+9. Which item is the most expensive? Healing Potion / Bomb / Smoke Bomb / **Phoenix Feather**
+10. Which item always lets you escape from a battle? **Smoke Bomb** / Bomb / Party Tonic / Phoenix Feather
+11. How many heroes can a boss hit with one attack? 1 / 2 / **3** / 4
+12. What is the most damage a normal monster can do in one hit? 5 / **10** / 15 / 20
+13. Who gets the XP for defeating a monster? Everyone / The Warrior / **The hero who lands the final blow** / Nobody
+14. When is a group out of the game? When one hero falls / When they run out of gold / **When all heroes have fallen and they have no Phoenix Feathers** / After floor 2
+15. Who decides which ally the Mage heals? The game / The monster / **The player** / The teacher
+
+---
+
+## For teachers: running a game
+
+1. On the home screen, tap **Host an expedition**.
+2. Show the screen to the class. Groups scan the **QR code** or use the room code link.
+3. When all groups have joined, tap **Enter the dungeon**. Groups can't join after the game starts.
+
+![The host lobby with the QR code and joined groups](docs/screenshots/host-lobby.jpg)
+
+Keep the host screen open during play. It shows the shared map, each group's health and gold, active battles and the game log. **Return to lobby** restarts the game with the same groups.
+
+![The host's dungeon board](docs/screenshots/host-board.jpg)
+
+**Good to know**
+
+- **Devices:** the player screens are designed for iPads, and the host screen for a 1920 × 1080 display.
+- **Stay in the same tab:** each group's iPad remembers its group in that browser tab. Refreshing is fine, but a new tab won't remember the group.
+- **Add monsters first:** normal monsters come from the Monster Creator. With an empty library, rooms have no monsters and only the boss remains.
+- **Saved designs are safe:** deleting a saved design or map requires the teacher's delete key.
+- **Old rooms:** rooms not used for 24 hours may be removed.
+
+The music controls are at the top right of every screen.
+
+---
+
+## For developers
+
+The game is built on vinext and runs as a Cloudflare Worker with a D1 database. It needs Node.js 22.13 or newer and pnpm 11.25.
 
 ```text
 pnpm install
@@ -177,4 +414,15 @@ pnpm build
 pnpm lint
 ```
 
-The classroom launch scripts run Wrangler locally with a persistent local D1 database. The production build is deployed as a Cloudflare Worker.
+| To change | Look in |
+|---|---|
+| Item names and prices | `app/items.ts` |
+| Floor 3 mazes | `app/boss-floors.ts` |
+| Bosses | `app/bosses.ts` |
+| Rolled stat limits and the trap target | `app/creations.ts` |
+| Battle rules and monster scaling | `app/api/game/route.ts` |
+| Delete key | `app/delete-key.ts` (stores a hash, and explains how to change it) |
+
+**Deploying:** Cloudflare builds and deploys automatically when changes reach `main`, using `pnpm deploy:cloudflare`. Make changes on a separate branch first, because `main` updates the live game. To deploy by hand on Windows, run `SETUP_AND_DEPLOY.bat`. Database migrations are never applied automatically.
+
+**Running on a classroom network without the hosted site:** on the host computer, double-click `START_GAME.bat` (Windows) or `START_GAME.command` (macOS), keep the window open, and open the address it prints on devices on the same Wi-Fi. Some school networks block this, so test before class.
