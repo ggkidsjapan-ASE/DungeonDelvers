@@ -7,7 +7,8 @@ import { BOSS_VIEW_BOX, findBoss } from "./bosses";
 import { HERO_VIEW_BOX, heroLayers, type PixelLayer } from "./hero-art";
 import { MONSTER_VIEW_BOX, monsterLayers } from "./monster-art";
 import QRCode from "qrcode";
-import { ArrowDownToLine, Bomb, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Swords, TriangleAlert, Users, VolumeX, X } from "lucide-react";
+import { ArrowDownToLine, Bomb, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, Dice, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Sparkle, Swords, TriangleAlert, Trophy, Users, VolumeX, X } from "./pixel-icons";
+import { SCENE_VIEW_BOX, sceneObjectLayers, type SceneObject } from "./scene-art";
 import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
 
 type CharacterClass = CharacterClassType;
@@ -94,7 +95,7 @@ function saveStoredValue(key: string, value: string, tabScoped = false) {
 }
 
 function Brand() {
-  return <div className="brand"><span className="brand-mark">✦</span><span>Dungeon Delvers</span></div>;
+  return <div className="brand"><span className="brand-mark"><Skull /></span><span>Dungeon Delvers</span></div>;
 }
 
 const MUSIC_TRACKS = [
@@ -355,10 +356,7 @@ function MapMarker({ kind }: { kind: MapMarkerKind }) {
   if (kind === "trap") return <TriangleAlert {...props} />;
   if (kind === "key") return <KeyRound {...props} />;
   if (kind === "exit") return <ArrowDownToLine {...props} />;
-  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 8h18v12H3z" />
-    <path d="M3 8l3-5h12l3 5M3 13h18M11 13v3h2v-3" />
-  </svg>;
+  return <Package {...props} />;
 }
 
 export default function Home() {
@@ -551,13 +549,14 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
   function deleteDesign(design: SavedDesign) {
     setPendingDelete({ name: design.name, run: (deleteKey) => onDeleteDesign(design.id, deleteKey) });
   }
-  if (section === "home") return <section className="landing landing-home homepage">
-    <div className="landing-art" aria-hidden="true"><span>⌖</span><i>✦</i><b>♜</b></div>
-    <Brand />
-    <p className="eyebrow">A co-op classroom adventure</p>
-    <h1>Build your<br /><em>own dungeon.</em></h1>
-    <p className="lede">Create a world, gather your party, and descend into adventure.</p>
-    <button className="primary big homepage-play" onClick={() => onCreate(selectedMapId || undefined)} disabled={busy}>{busy ? "Opening an expedition…" : selectedMap ? `Play ${selectedMap.name}` : "Host an expedition"}<ChevronRight /></button>
+  if (section === "home") return <section className="landing landing-home homepage dungeon-home">
+    <span className="wall-torch wall-torch-left" aria-hidden="true" />
+    <span className="wall-torch wall-torch-right" aria-hidden="true" />
+    <h1>Dungeon Delvers</h1>
+    <p className="lede">Gather your party. Descend into the dark.</p>
+    <div className="dungeon-gate">
+      <button className="primary big homepage-play" onClick={() => onCreate(selectedMapId || undefined)} disabled={busy}>{busy ? "Opening an expedition…" : selectedMap ? `Play ${selectedMap.name}` : "Host an expedition"}<ChevronRight /></button>
+    </div>
     <div className="homepage-options" aria-label="Dungeon workshop options">
       <button onClick={() => setSection("maps")}><Map /><strong>Map maker</strong><span>Build a dungeon layout</span><b>{maps.length} saved</b></button>
       <button onClick={() => setSection("characters")}><Users /><strong>Character creator</strong><span>Design class-based heroes</span><b>{designs.filter((design) => design.kind === "character").length} saved</b></button>
@@ -713,12 +712,12 @@ function DesignEditor({ kind, initialDesign, onClose, onSave }: { kind: CreatorK
           <div className="body-part-grid">{Object.entries(options).map(([part, values]) => <label className="creator-field" key={part}>{part === "tail" || part === "wings" ? `${part} (optional)` : part}<select value={parts[part as keyof BodyParts] || "none"} onChange={(event) => updatePart(part as keyof BodyParts, event.target.value)}>{values.map((value) => <option value={value} key={value}>{value.replaceAll("-", " ")}</option>)}</select></label>)}</div>
           <section className="design-stat-controls">
             {kind === "character" ? <>
-              <div className="creator-heading"><div><p className="form-label">Roll hero stats</p><small>Roll 4d6, drop the lowest, then assign the results.</small></div><button type="button" className="roll-button" onClick={rollCharacterStats}>🎲 {characterStats ? "Reroll" : "Roll stats"}</button></div>
+              <div className="creator-heading"><div><p className="form-label">Roll hero stats</p><small>Roll 4d6, drop the lowest, then assign the results.</small></div><button type="button" className="roll-button" onClick={rollCharacterStats}><Dice /> {characterStats ? "Reroll" : "Roll stats"}</button></div>
               {characterRolls ? <><div className="stat-roll-cards">{characterRolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>4D6 · DROP LOWEST</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex} className={dieIndex === 0 ? "drop-die" : ""}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={assignments[stat]} onChange={(event) => assignCharacterStat(stat, Number(event.target.value))}>{characterRolls.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></>
                 : characterStats ? <p className="muted">Saved stats: Damage {characterStats.damage}, Dexterity {characterStats.dexterity}, Speed {characterStats.speed}. Reroll to replace them.</p>
                   : <p className="muted roll-prompt">Roll three stats to finish this character design.</p>}
             </> : <>
-              <div className="creator-heading"><div><p className="form-label">Roll monster stats</p><small>Damage range d6 + d6 · Speed 3d6 · Bounty 2d6 × 5 gold.</small></div><button type="button" className="roll-button" onClick={rollMonsterStats}>🎲 {monsterStats ? "Reroll" : "Roll stats"}</button></div>
+              <div className="creator-heading"><div><p className="form-label">Roll monster stats</p><small>Damage range d6 + d6 · Speed 3d6 · Bounty 2d6 × 5 gold.</small></div><button type="button" className="roll-button" onClick={rollMonsterStats}><Dice /> {monsterStats ? "Reroll" : "Roll stats"}</button></div>
               {monsterStats && <div className="monster-stat-rolls"><span>Damage <b>{monsterStats.damageMin}–{monsterStats.damageMax}</b>{monsterDice && <small>({monsterDice.damage.join(" + ")})</small>}</span><span>Speed <b>{monsterStats.speed}</b>{monsterDice && <small>({monsterDice.speed.join(" + ")})</small>}</span><span>Bounty <b>{monsterStats.bounty} gold</b>{monsterDice && <small>({monsterDice.bounty.join(" + ")} × 5)</small>}</span></div>}
               {!monsterStats && <p className="muted roll-prompt">Roll monster stats before saving.</p>}
             </>}
@@ -767,7 +766,7 @@ function BattleScreen({ game, group, battle, battleEffect, monsterAttack, sequen
           </div>}
           {monsterAttack && <div key={monsterAttack.id} className="battle-monster-attack" aria-live="assertive"><strong>{battle.enemy} attacks!</strong><span>{monsterAttack.targetName} · rolled {monsterAttack.rolledDamage} · −{monsterAttack.damage} HP</span></div>}
           <div className="battle-actor">
-            <span className={`battle-actor-sprite ${displayedHero ? "" : "battle-actor-waiting"} ${battleEffect && effectActor?.id === displayedHero?.id ? `battle-actor-attacking attack-${battleEffect.kind}` : ""} ${monsterAttack?.targetId === displayedHero?.id ? "battle-hero-hit" : ""}`}>{displayedHero ? <PixelSprite characterClass={displayedHero.characterClass} color={displayedHero.spriteColor} trimColor={displayedHero.trimColor} colors={displayedHero.partColors} appearance={displayedHero.appearance} /> : "✦"}</span>
+            <span className={`battle-actor-sprite ${displayedHero ? "" : "battle-actor-waiting"} ${battleEffect && effectActor?.id === displayedHero?.id ? `battle-actor-attacking attack-${battleEffect.kind}` : ""} ${monsterAttack?.targetId === displayedHero?.id ? "battle-hero-hit" : ""}`}>{displayedHero ? <PixelSprite characterClass={displayedHero.characterClass} color={displayedHero.spriteColor} trimColor={displayedHero.trimColor} colors={displayedHero.partColors} appearance={displayedHero.appearance} /> : <Sparkle />}</span>
             <span className="battle-platform" />
             {displayedHero && <div className="battle-actor-caption"><strong>{displayedHero.name}</strong><small>{displayedHero.characterClass} · {displayedHero.hp}/{displayedHero.maxHp} HP</small>{monsterAttack?.targetId === displayedHero.id ? <small>Hit by the monster!</small> : battleEffect && effectActor?.id === displayedHero.id ? <small>Attacking!</small> : activeHero && battle.actedCharacterIds.includes(activeHero.id) && <small>Turn complete</small>}</div>}
           </div>
@@ -925,13 +924,13 @@ function ExpeditionBoard({ game, onAction, error, busy }: { game: GameState; onA
     {game.phase === "lobby" ? <div className="host-lobby">
       <article className="join-card"><p className="eyebrow">Ready your groups</p><h1>Join the expedition</h1><p className="muted">Scan on up to eight devices or tabs. Each group can create up to four heroes.</p><div className="qr-box">{qr ? <Image src={qr} alt="QR code to join this expedition" width={260} height={260} unoptimized /> : <span>Making code…</span>}</div><p className="room-code">ROOM CODE <strong>{game.code}</strong></p>{link}</article>
       <article className="party-card"><div className="section-heading"><div><p className="eyebrow">Adventuring groups</p><h2>{game.groups.length}/{MAX_GROUPS} joined</h2></div><Users /></div>
-        {game.groups.length ? <div className="group-list">{game.groups.map((group) => <GroupSummary key={group.id} group={group} />)}</div> : <div className="empty-state"><span>✧</span><p>Your party will appear here as groups join.</p></div>}
+        {game.groups.length ? <div className="group-list">{game.groups.map((group) => <GroupSummary key={group.id} group={group} />)}</div> : <div className="empty-state"><span><Sparkle /></span><p>Your party will appear here as groups join.</p></div>}
         <div className="host-actions"><p>Share the code with up to eight groups. Each group can have up to four heroes.</p><button className="primary" onClick={() => onAction("start")} disabled={busy || !game.groups.length}>Enter the dungeon<ChevronRight /></button></div>
       </article>
     </div> : <div className="central-layout">
       <section className="central-main">
         <div className="board-title"><div><p className="eyebrow">{game.phase === "complete" ? "Quest complete" : "All parties · shared discoveries"}</p><h1>{game.phase === "complete" ? "The dungeon is clear!" : game.floors.find((floor) => floor.number === mapFloor)?.name || "The Sunken Halls"}</h1></div></div>
-        {game.phase === "complete" ? <div className="complete-panel"><span>🏆</span><h2>Expedition complete</h2><p>All parties have escaped or been defeated. The expedition earned {game.groups.reduce((sum, group) => sum + group.stats.gold, 0)} gold.</p><button className="primary" onClick={() => onAction("reset")} disabled={busy}><RotateCcw /> New expedition</button></div> : <>
+        {game.phase === "complete" ? <div className="complete-panel"><span><Trophy /></span><h2>Expedition complete</h2><p>All parties have escaped or been defeated. The expedition earned {game.groups.reduce((sum, group) => sum + group.stats.gold, 0)} gold.</p><button className="primary" onClick={() => onAction("reset")} disabled={busy}><RotateCcw /> New expedition</button></div> : <>
           <div className="floor-picker" aria-label="Select a floor overview">{game.floors.map((floor) => <button key={floor.number} className={mapFloor === floor.number ? "selected" : ""} onClick={() => setMapFloor(floor.number)}>FLOOR {floor.number}</button>)}</div>
           {game.floors.find((floor) => floor.keyFound) && <div className="key-found-banner"><KeyRound /> Floor {game.floors.find((floor) => floor.keyFound)?.number} key found! The stairway is unlocked.</div>}
           <DungeonMap game={game} floorNumber={mapFloor} />
@@ -1132,118 +1131,10 @@ function FirstPersonExplore({ game, group, floor, onMove, onFacingChange, error 
     <div className={`dungeon-view environment-${environment} ${motion ? `motion-${motion.kind}` : ""}`} role="img" aria-label={`${environmentLabel}. ${sceneTile?.name || (targetVisible ? target?.name : "Dark dungeon passage")} ahead`}>
       <div key={motion?.id ?? "still"} className="dungeon-view-motion">
       <div className="navigation-status" aria-live="polite"><span>{environmentLabel}</span><strong>{lastAction}</strong><b>Facing {facing.name}</b></div>
-      <svg className="dungeon-view-scene" viewBox="0 0 800 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <defs>
-          <linearGradient id="dungeon-stone" x1="0" y1="0" x2="0.8" y2="1">
-            <stop offset="0" stopColor="#526557" /><stop offset="1" stopColor="#293a32" />
-          </linearGradient>
-          <linearGradient id="dungeon-ground" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#37473c" /><stop offset="1" stopColor="#1b2923" />
-          </linearGradient>
-        </defs>
-        <rect width="800" height="420" fill="#0e1513" />
-        <path d="M0 0H800L555 115H245Z" fill="#202b26" />
-        <path d="M0 420H800L555 305H245Z" fill="url(#dungeon-ground)" />
-        <path d="M0 0L245 115V305L0 420Z" fill="url(#dungeon-stone)" />
-        <path d="M800 0L555 115V305L800 420Z" fill="#35473d" />
-        <path d="M245 115H555V305H245Z" fill="#121b17" stroke="#66745b" strokeWidth="8" />
-        <path d="M0 0L245 115M800 0L555 115M0 420L245 305M800 420L555 305" stroke="#78836a" strokeWidth="4" />
-        <path d="M0 70L245 143M0 140L245 170M0 210H245M0 280L245 250M0 350L245 278M800 70L555 143M800 140L555 170M800 210H555M800 280L555 250M800 350L555 278" stroke="#26372f" strokeWidth="5" />
-        <path d="M80 24L270 126M160 12L298 126M240 5L326 126M320 2L356 126M720 24L530 126M640 12L502 126M560 5L474 126M480 2L444 126" stroke="#415349" strokeWidth="3" />
-        <path d="M80 396L270 294M160 408L298 294M240 415L326 294M320 418L356 294M720 396L530 294M640 408L502 294M560 415L474 294M480 418L444 294" stroke="#2b3e32" strokeWidth="3" />
-        <path d="M52 0L67 30L59 42L78 69M734 0L719 26L728 45L709 67M182 0L194 24L186 41M618 0L605 21L613 39" fill="none" stroke="#65765a" strokeWidth="5" strokeLinecap="round" opacity=".8" />
-        <path d="M0 178L22 168L31 183L49 174M800 171L779 162L770 178L751 168M0 330L26 319L35 335M800 325L776 312L766 328" fill="none" stroke="#80906a" strokeWidth="7" strokeLinecap="round" opacity=".75" />
-        <path d="M104 87l9-8 7 5 9-12M696 88l-9-8-7 5-9-12M208 355l11-5 5 8 13-6M592 355l-11-5-5 8-13-6" fill="none" stroke="#354637" strokeWidth="4" strokeLinecap="round" />
-        {environment === "hallway" && <>
-          <path d="M0 28L67 24L82 42L0 51M800 30L733 24L718 43L800 53" fill="#56634a" opacity=".8" />
-          <path d="M36 378l34-18 18 15-18 18ZM740 377l27-17 17 14-16 20Z" fill="#71805c" stroke="#29382d" strokeWidth="4" />
-          <path d="M104 152l10 6m-6 7l8 5M694 151l-10 7m6 7l-8 5" stroke="#d5bb68" strokeWidth="3" opacity=".85" />
-        </>}
-        {environment === "junction" && <>
-          <path d="M124 102L154 94L167 103L158 116L131 118ZM676 102L646 94L633 103L642 116L669 118Z" fill="#526146" stroke="#9b9565" strokeWidth="3" />
-          <path d="M80 292q24-22 48 0M720 292q-24-22-48 0" fill="none" stroke="#9b8351" strokeWidth="5" opacity=".8" />
-          <circle cx="106" cy="300" r="5" fill="#e4a45c" /><circle cx="694" cy="300" r="5" fill="#e4a45c" />
-        </>}
-        {environment === "dead-end" && <>
-          <path d="M272 122L285 113L298 124L294 143L276 144ZM528 122L515 113L502 124L506 143L524 144Z" fill="#8b7852" stroke="#303d31" strokeWidth="4" />
-          <path d="M320 110l12 7-8 8m144-15l-12 7 8 8" fill="none" stroke="#b78c5b" strokeWidth="3" />
-        </>}
-        {environment === "chamber" && <>
-          <path d="M115 259l12-24 12 24M661 259l12-24 12 24" fill="#42533e" stroke="#9b9565" strokeWidth="3" />
-          <path d="M111 263h34M657 263h34" stroke="#d4ad5d" strokeWidth="4" />
-          <circle cx="128" cy="251" r="18" fill="#e6c478" opacity=".1" /><circle cx="674" cy="251" r="18" fill="#e6c478" opacity=".1" />
-        </>}
-        <path d="M280 132H520V288H280Z" fill="#202b26" stroke="#7b815e" strokeWidth="9" />
-        <path d="M330 153H470V267H330Z" fill="#151e1a" stroke="#465849" strokeWidth="6" />
-        <path d="M365 171H435V249H365Z" fill="#0b100e" stroke="#303c33" strokeWidth="5" />
-        <path d="M280 180H520M280 235H520M330 192H470M330 228H470M365 197H435M365 223H435" stroke="#344238" strokeWidth="4" />
-        {environment === "chamber" && <>
-          <path d="M255 145L275 132L295 145V293L255 304ZM545 145L525 132L505 145V293L545 304Z" fill="#26372d" stroke="#8b805c" strokeWidth="5" />
-          <path d="M263 155V290M537 155V290" stroke="#a39468" strokeWidth="3" opacity=".7" />
-        </>}
-        {environment === "junction" && <path d="M385 285H415M391 294H409" stroke="#d5bd75" strokeWidth="4" opacity=".75" />}
-        {!target && <path d="M348 185L452 238M452 185L348 238" stroke="#a06e4d" strokeWidth="10" opacity=".8" />}
-        {leftOpening && <>
-          <path d="M18 157L57 137L97 155V292L18 321Z" fill="#111914" stroke="#b08c50" strokeWidth="5" />
-          <path d="M29 166L61 150L86 163V281L29 302Z" fill="#080d0b" />
-          <path d="M18 157L57 137L97 155M18 321L97 292" fill="none" stroke="#6b7958" strokeWidth="7" />
-          <path d="M27 239H91" stroke="#77805d" strokeWidth="3" opacity=".65" />
-        </>}
-        {rightOpening && <>
-          <path d="M782 157L743 137L703 155V292L782 321Z" fill="#111914" stroke="#b08c50" strokeWidth="5" />
-          <path d="M771 166L739 150L714 163V281L771 302Z" fill="#080d0b" />
-          <path d="M782 157L743 137L703 155M782 321L703 292" fill="none" stroke="#6b7958" strokeWidth="7" />
-          <path d="M773 239H709" stroke="#77805d" strokeWidth="3" opacity=".65" />
-        </>}
-        <path d="M128 121L140 99L152 121M648 121L660 99L672 121" fill="#d4ae61" stroke="#76623d" strokeWidth="4" />
-        <circle cx="140" cy="118" r="22" fill="#e6c478" opacity=".12" /><circle cx="660" cy="118" r="22" fill="#e6c478" opacity=".12" />
-        <path d="M400 0V114M0 210H245M555 210H800" stroke="#a9a17a" strokeWidth="2" opacity=".28" />
-        {sceneKind === "chest" && <g className="corridor-object corridor-chest" transform="translate(400 275) scale(1.45)">
-          <ellipse cx="0" cy="27" rx="45" ry="10" fill="#050806" opacity=".7" />
-          <path d="M-35 0H35V25H-35Z" fill="#754720" stroke="#e0ad55" strokeWidth="4" />
-          <path d="M-35 0Q-35-18-18-18H18Q35-18 35 0Z" fill="#a86c2e" stroke="#f1ca6b" strokeWidth="4" />
-          <path d="M-5-16V24M-35 7H35" stroke="#e0ad55" strokeWidth="5" />
-          <path d="M-7-2H7V8H-7Z" fill="#f2d878" stroke="#754720" strokeWidth="2" />
-          <path d="M-23-18Q0-37 23-18" fill="none" stroke="#ffe68a" strokeWidth="3" opacity=".8" />
-        </g>}
-        {sceneKind === "trap" && <g className="corridor-object corridor-trap" transform="translate(400 282) scale(1.35)">
-          <ellipse cx="0" cy="15" rx="58" ry="16" fill="#080c0a" stroke="#dc8958" strokeWidth="5" />
-          <ellipse cx="0" cy="15" rx="38" ry="9" fill="#202a25" stroke="#87563e" strokeWidth="3" />
-          <path d="M-39 6L-29-19L-19 7M-14 2L0-27L13 4M16 6L31-18L39 10" fill="#d0c5a0" stroke="#614d3b" strokeWidth="4" strokeLinejoin="round" />
-          <path d="M-52 13H52M0-31V-43M-47-8L-56-16M47-8L56-16" stroke="#efaa6b" strokeWidth="3" opacity=".9" />
-        </g>}
-        {sceneKind === "monster" && <g className="corridor-object corridor-monster" transform="translate(400 274) scale(1.35)">
-          {sceneMonster && (sceneMonster.appearance || findBoss(sceneMonster.name))
-            ? <svg x="-34" y="-63" width="68" height="78" viewBox="0 0 48 48"><MonsterArt monster={sceneMonster} /></svg>
-            : <>
-              <ellipse cx="0" cy="23" rx="41" ry="11" fill="#050806" opacity=".75" />
-              <path d="M-31 10L-37-17L-18-9L0-25L19-9L37-17L31 11L21 22H-21Z" fill="#7b493c" stroke="#e29665" strokeWidth="4" strokeLinejoin="round" />
-              <path d="M-19-3L-11 3L-17 9M19-3L11 3L17 9" fill="#ffe17a" stroke="#211713" strokeWidth="3" strokeLinejoin="round" />
-              <path d="M-9 17H9M-27-13L-23-30L-10-13M27-13L23-30L10-13" fill="#a65a43" stroke="#e29665" strokeWidth="3" strokeLinejoin="round" />
-              <path d="M-40-5L-52-15M40-5L52-15" stroke="#c27657" strokeWidth="5" strokeLinecap="round" />
-              <path d="M-8 16L-12 23M8 16L12 23" stroke="#f0dbb6" strokeWidth="3" />
-            </>}
-        </g>}
-        {sceneKind === "corpse" && <g className="corridor-object corridor-corpse" transform="translate(400 293) rotate(-12) scale(1.5)">
-          <ellipse cx="0" cy="18" rx="53" ry="11" fill="#050806" opacity=".8" />
-          <path d="M-43 10L-34-1L-20 1L-10-6L7-3L18-9L38-2L45 8L31 17L8 14L-13 19L-34 16Z" fill="#493c35" stroke="#968273" strokeWidth="4" strokeLinejoin="round" />
-          <path d="M-29 0L-35-15L-20-9L-13 2M28 0L36-14L20-8L14 3" fill="#564740" stroke="#867565" strokeWidth="3" />
-          <path d="M-8 0l7 4m1-4l-7 4M23 3l4 4m0-4l-4 4" stroke="#b7a995" strokeWidth="2" />
-          <path d="M-49 13L-32 8M-42 19L-27 15M35 13L49 8" stroke="#713d35" strokeWidth="4" opacity=".9" />
-          <path d="M-5 4L2 10" stroke="#d1c4a7" strokeWidth="2" />
-        </g>}
-        {sceneKind === "key" && <g className="corridor-object corridor-key" transform="translate(400 270) scale(1.25)">
-          <ellipse cx="0" cy="30" rx="28" ry="9" fill="#060907" opacity=".7" />
-          <circle cx="0" cy="-3" r="19" fill="#d9b84d" stroke="#fff0a0" strokeWidth="5" />
-          <circle cx="0" cy="-3" r="7" fill="#273329" />
-          <path d="M0 15V39M0 29H12M0 36H9" stroke="#e5c75e" strokeWidth="7" strokeLinecap="square" />
-        </g>}
-        {sceneKind === "exit" && <g className="corridor-object corridor-exit" transform="translate(400 272) scale(1.25)">
-          <path d="M-24 33V-25H22V33M-33 34H31" fill="#121a15" stroke="#dfc46d" strokeWidth="6" />
-          <path d="M-14 30V-15H12V30Z" fill="#403c2b" stroke="#827b50" strokeWidth="3" />
-          <circle cx="7" cy="8" r="2.5" fill="#ffe48c" />
-          <path d="M-7-4H4M-2-10L4-4L-2 2" fill="none" stroke="#e7d387" strokeWidth="3" />
-        </g>}
+      <svg className="dungeon-view-scene" viewBox="0 0 800 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <image href={`/ui/corridor-${target ? 1 : 0}${leftOpening ? 1 : 0}${rightOpening ? 1 : 0}.png`} width="800" height="420" preserveAspectRatio="none" style={{ imageRendering: "pixelated" }} />
+        {(sceneKind === "chest" || sceneKind === "trap" || sceneKind === "corpse" || sceneKind === "key" || sceneKind === "exit") && <svg className={`corridor-object corridor-${sceneKind}`} x="290" y="170" width="220" height="220" viewBox={SCENE_VIEW_BOX}><PixelGrid layers={sceneObjectLayers(sceneKind as SceneObject)} className="scene-object-sprite" label={`${sceneKind} in the corridor`} viewBox={SCENE_VIEW_BOX} outlineColor="#000000" /></svg>}
+        {sceneKind === "monster" && sceneMonster && <svg className="corridor-object corridor-monster" x="270" y="120" width="260" height="260" viewBox="0 0 48 48"><MonsterArt monster={sceneMonster} /></svg>}
       </svg>
       <div className="dungeon-view-vignette" aria-hidden="true" />
       <div className="dungeon-view-caption">
@@ -1264,7 +1155,7 @@ function FirstPersonExplore({ game, group, floor, onMove, onFacingChange, error 
         <button className="dpad-button dpad-west" type="button" aria-label="Turn left" title="Turn left" disabled={blocked} onClick={() => turn(-1)}><RotateCcw aria-hidden="true" /></button>
         <button className="dpad-button dpad-east" type="button" aria-label="Turn right" title="Turn right" disabled={blocked} onClick={() => turn(1)}><RotateCw aria-hidden="true" /></button>
         <button className="dpad-button dpad-south" type="button" aria-label={`Move backward ${reverseFacing.name}`} title={`Move backward (${reverseFacing.name})`} disabled={!floor.tiles.some((tile) => tile.x === group.stats.x + reverseFacing.dx && tile.y === group.stats.y + reverseFacing.dy) || blocked} onClick={() => void move(reverseFacing, true)}><ChevronDown aria-hidden="true" /></button>
-        <span className="dpad-center" aria-hidden="true">✦</span>
+        <span className="dpad-center" aria-hidden="true"><Sparkle /></span>
       </div>
       <p className="first-person-hint" role={error ? "alert" : undefined}>{error || (moving ? "Moving…" : "▲ forward · ▼ back · ↶ ↷ turn")}</p>
     </div>
@@ -1291,7 +1182,7 @@ function GroupSummary({ group }: { group: Group }) {
 
 function InfoPanel({ game, tab }: { game: GameState; tab: Tab }) {
   if (tab === "bestiary") return <div className="info-grid">{game.bestiary.map((beast) => <article className="info-card" key={beast.name}><span><MonsterArt monster={beast} /></span><div><strong>{beast.name}{beast.boss ? " · Boss" : ""}</strong><p>{beast.description}</p><small>Damage {beast.damageMin}–{beast.damageMax} · Speed {beast.speed} · Bounty {beast.bounty} gold</small></div></article>)}</div>;
-  if (tab === "items") return <div className="info-grid">{Object.entries(ITEM_LABELS).map(([item, label]) => <article className="info-card" key={item}><span>{item === "potion" ? "🧪" : item === "phoenix-feather" ? "🪶" : "💣"}</span><div><strong>{label}</strong><p>{item === "potion" ? "Restores up to 8 HP to one living hero." : item === "phoenix-feather" ? "Revives one fallen hero at half health." : "Deals 12 damage to a monster during battle."}</p></div></article>)}</div>;
+  if (tab === "items") return <div className="info-grid">{Object.entries(ITEM_LABELS).map(([item, label]) => <article className="info-card" key={item}><span>{item === "potion" ? <FlaskConical /> : item === "phoenix-feather" ? <Feather /> : <Bomb />}</span><div><strong>{label}</strong><p>{item === "potion" ? "Restores up to 8 HP to one living hero." : item === "phoenix-feather" ? "Revives one fallen hero at half health." : "Deals 12 damage to a monster during battle."}</p></div></article>)}</div>;
   if (tab === "bounties") return <div className="info-grid">{game.bestiary.map((beast) => <article className="bounty-card" key={beast.name}><span><MonsterArt monster={beast} /> {beast.name}</span><strong>{beast.bounty} <small>gold</small></strong></article>)}</div>;
   return null;
 }
@@ -1410,7 +1301,7 @@ function BattleResultDialog({ outcome, onClose }: { outcome: BattleEnd; onClose:
   const escaped = outcome.result === "escaped";
   return <div className="battle-result-backdrop">
     <section className={`battle-result-dialog ${victory ? "battle-result-victory" : escaped ? "battle-result-escaped" : "battle-result-defeat"}`} role="dialog" aria-modal="true" aria-labelledby="battle-result-title">
-      <span className="battle-result-icon">{victory ? "🏆" : escaped ? <DoorOpen /> : "☠"}</span>
+      <span className="battle-result-icon">{victory ? <Trophy /> : escaped ? <DoorOpen /> : <Skull />}</span>
       <p className="eyebrow">{victory ? "Victory" : escaped ? "Retreated" : "Defeat"}</p>
       <h2 id="battle-result-title">{victory ? `${outcome.enemy} defeated!` : escaped ? "You escaped!" : "Your party has fallen."}</h2>
       <p>{victory ? `Your party won the battle${outcome.gold ? ` and earned ${outcome.gold} gold` : ""}.` : escaped ? `Your party escaped from ${outcome.enemy} and can continue exploring.` : `Your party was defeated by ${outcome.enemy}. The expedition is over.`}</p>
@@ -1494,10 +1385,10 @@ function HowToPlayDialog({ onClose }: { onClose: () => void }) {
       <h2 id="how-to-play-title">How to explore the dungeon</h2>
       <p className="how-to-play-intro">Work together, explore one step at a time, and help your party reach the stairs.</p>
       <div className="how-to-play-grid">
-        <article><span aria-hidden="true">🧭</span><div><strong>Explore</strong><p>Tap a neighboring tile to move. Rooms reveal their contents when you enter. Every party explores separately, but discoveries are shared.</p></div></article>
-        <article><span aria-hidden="true">🗝️</span><div><strong>Find the key</strong><p>Search each floor for its key, then find the stairs to continue. Clear all three floors to finish the expedition.</p></div></article>
-        <article><span aria-hidden="true">⚔️</span><div><strong>Battle together</strong><p>Each living hero takes one action per round before the monster attacks. Use your class abilities, or run if you need to escape.</p></div></article>
-        <article><span aria-hidden="true">🎒</span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of 15 or more. Chests may hold gold, healing potions, a Phoenix Feather, or bombs.</p></div></article>
+        <article><span aria-hidden="true"><Map /></span><div><strong>Explore</strong><p>Tap a neighboring tile to move. Rooms reveal their contents when you enter. Every party explores separately, but discoveries are shared.</p></div></article>
+        <article><span aria-hidden="true"><KeyRound /></span><div><strong>Find the key</strong><p>Search each floor for its key, then find the stairs to continue. Clear all three floors to finish the expedition.</p></div></article>
+        <article><span aria-hidden="true"><Swords /></span><div><strong>Battle together</strong><p>Each living hero takes one action per round before the monster attacks. Use your class abilities, or run if you need to escape.</p></div></article>
+        <article><span aria-hidden="true"><TriangleAlert /></span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of 15 or more. Chests may hold gold, healing potions, a Phoenix Feather, or bombs.</p></div></article>
       </div>
       <button className="primary big" onClick={onClose}>Start exploring <ChevronRight /></button>
     </section>
@@ -1672,7 +1563,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
         <label htmlFor="group-name">Group name</label><input id="group-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={24} placeholder="e.g. The Brave Badgers" autoComplete="off" />
         {designs.some((design) => design.kind === "character") && <label className="saved-hero-field" htmlFor="hero-design">Choose a saved hero<select id="hero-design" value={activeDraft.designId} onChange={(event) => chooseCharacterDesign(event.target.value)}><option value="">Create a new hero</option>{designs.filter((design): design is CharacterDesign => design.kind === "character").map((design) => <option key={design.id} value={design.id}>{design.name} · {design.characterClass}</option>)}</select></label>}
         <section className="roster-builder"><div className="roster-heading"><p className="form-label">Party members · {roster.length}/4</p><button type="button" className="roll-button" disabled={roster.length >= 4} onClick={() => { setRoster((current) => [...current, createHeroDraft(current.length + 1)]); setSelectedHero(roster.length); }}>+ Add hero</button></div>
-          <button type="button" className="random-hero-button" onClick={() => updateDraft(createRandomHeroDraft(selectedHero + 1))}>🎲 Choose a random hero</button>
+          <button type="button" className="random-hero-button" onClick={() => updateDraft(createRandomHeroDraft(selectedHero + 1))}><Dice /> Choose a random hero</button>
           <div className="roster-tabs">{roster.map((hero, index) => <button type="button" key={index} className={index === selectedHero ? "selected" : ""} onClick={() => setSelectedHero(index)}>{hero.name || `Hero ${index + 1}`}</button>)}</div>
           <label htmlFor="hero-name">Character name</label><input id="hero-name" value={activeDraft.name} onChange={(event) => updateDraft({ name: event.target.value })} maxLength={24} autoComplete="off" />
           {roster.length > 1 && <button type="button" className="text-button danger" onClick={() => { setRoster((current) => current.filter((_, index) => index !== selectedHero)); setSelectedHero(Math.max(0, selectedHero - 1)); }}>Remove this hero</button>}
@@ -1681,7 +1572,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
       <div className="party-class-choice">
         <p className="form-label">Choose {activeDraft.name || "this hero"}’s class</p><div className="class-picker">{CLASSES.map((item) => <button type="button" key={item.name} aria-pressed={activeDraft.characterClass === item.name} onClick={() => updateDraft({ characterClass: item.name, appearance: defaultBodyParts("character", item.name), partColors: defaultPartColors(activeDraft.spriteColor), designId: "", designStats: null, rolls: null })} className={activeDraft.characterClass === item.name ? "selected" : ""}><PixelSprite characterClass={item.name} color={activeDraft.spriteColor} trimColor={activeDraft.trimColor} colors={defaultPartColors(activeDraft.spriteColor)} appearance={defaultBodyParts("character", item.name)} /><strong>{item.name} · {item.hp} HP</strong><small>{item.description}</small></button>)}</div>
       </div>
-      <section className="creator-stats"><div className="creator-heading"><div><p className="form-label">{activeDraft.designStats ? `${activeDraft.name || "Hero"}’s saved stats` : `Roll ${activeDraft.name || "this hero"}’s stats`}</p><small>{activeDraft.designStats ? "These stats are part of the selected character design." : "Roll 4d6, drop the lowest die, then assign each result."}</small></div>{!activeDraft.designStats && <button type="button" className="roll-button" onClick={rollStats}>🎲 {activeDraft.rolls ? "Reroll" : "Roll stats"}</button>}</div>
+      <section className="creator-stats"><div className="creator-heading"><div><p className="form-label">{activeDraft.designStats ? `${activeDraft.name || "Hero"}’s saved stats` : `Roll ${activeDraft.name || "this hero"}’s stats`}</p><small>{activeDraft.designStats ? "These stats are part of the selected character design." : "Roll 4d6, drop the lowest die, then assign each result."}</small></div>{!activeDraft.designStats && <button type="button" className="roll-button" onClick={rollStats}><Dice /> {activeDraft.rolls ? "Reroll" : "Roll stats"}</button>}</div>
         {activeDraft.designStats ? <div className="design-stat-summary party-design-stats"><span>Damage {activeDraft.designStats.damage}</span><span>Dexterity {activeDraft.designStats.dexterity}</span><span>Speed {activeDraft.designStats.speed}</span></div> : activeDraft.rolls ? <><div className="stat-roll-cards">{activeDraft.rolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>4D6 · DROP LOWEST</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex} className={dieIndex === 0 ? "drop-die" : ""}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={activeDraft.assignments[stat]} onChange={(event) => assign(stat, Number(event.target.value))}>{activeDraft.rolls!.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></> : <p className="muted roll-prompt">Tap “Roll stats” to get this hero’s three values.</p>}
       </section>
       <section className="sprite-picker"><div><p className="form-label">Choose this hero’s primary color</p><small>Distinct colors make each hero easy to identify.</small></div><div className="sprite-options">{SPRITE_COLORS.map((color) => <button type="button" key={color} aria-label={`Choose sprite color ${color}`} aria-pressed={activeDraft.spriteColor === color} className={activeDraft.spriteColor === color ? "selected" : ""} onClick={() => updateDraft({ spriteColor: color, partColors: defaultPartColors(color) })}><PixelSprite characterClass={activeDraft.characterClass} color={color} trimColor={activeDraft.trimColor} colors={defaultPartColors(color)} appearance={activeDraft.appearance} /></button>)}</div></section>
@@ -1715,11 +1606,11 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
     <header className="group-topbar"><Brand /><span className="floor-chip">{group.gameOver ? "Game over" : game.phase === "lobby" ? "Party lobby" : escaped ? "Escaped!" : `Floor ${group.stats.floor} of 3`}</span><span className="group-level">{group.characters.length} HEROES</span></header>
     <div className="group-content">    <div className="group-welcome"><span className="class-icon large"><PixelSprite characterClass={group.characterClass} color={group.stats.spriteColor} trimColor={group.characters[0]?.trimColor} colors={group.characters[0]?.partColors} appearance={group.characters[0]?.appearance} /></span><div><p className="eyebrow">{group.characters.map((hero) => hero.name).join(" · ")} · {group.name}</p><h1>{group.gameOver ? "Your expedition ends here." : game.phase === "lobby" ? "Your party is ready." : escaped ? "You made it out!" : game.phase === "complete" ? "Dungeon cleared!" : groupBattle ? "Stand your ground!" : "Into the unknown."}</h1></div></div>
       {foundFloor && <div className="key-found-banner"><KeyRound /> Floor {foundFloor.number} key found! The stairway is unlocked.</div>}
-      <div className="stat-strip"><span><Heart /> {group.stats.hp}/{group.stats.maxHp} HP</span><span>⚔ {group.stats.damage} DMG</span><span>◎ {group.stats.dexterity} DEX</span><span>➤ {group.stats.speed} SPD</span><span>🪙 {group.stats.gold}</span><span>🗝 {foundFloor ? `F${foundFloor.number} key found` : "Key missing"}</span></div>
+      <div className="stat-strip"><span><Heart /> {group.stats.hp}/{group.stats.maxHp} HP</span><span><Swords /> {group.stats.damage} DMG</span><span><Sparkle /> {group.stats.dexterity} DEX</span><span><Footprints /> {group.stats.speed} SPD</span><span><Coins /> {group.stats.gold}</span><span><KeyRound /> {foundFloor ? `F${foundFloor.number} key found` : "Key missing"}</span></div>
       {game.phase === "lobby" ? <div className="waiting-panel"><span>⌛</span><h2>Waiting for the host</h2><p>Keep this screen open. Your host will start the expedition when the groups are ready.</p></div> :
         group.gameOver ? <div className="game-over-panel"><span>☠</span><p className="eyebrow">Expedition over</p><h2>Your party has fallen</h2><p>Your group has no living heroes or Phoenix Feathers. The other groups can continue their expedition.</p><div className="fallen-roster">{group.characters.map((hero) => <span key={hero.id}>{hero.name} · {hero.hp}/{hero.maxHp} HP</span>)}</div></div> :
-        escaped ? <div className="waiting-panel"><span>🏆</span><h2>Party escaped!</h2><p>Your party made it out with {group.stats.gold} gold. The other parties can keep exploring.</p></div> :
-        game.phase === "complete" ? <div className="waiting-panel"><span>🏆</span><h2>Quest complete!</h2><p>Well explored, {group.name}. Your party earned {group.stats.gold} gold.</p></div> :
+        escaped ? <div className="waiting-panel"><span><Trophy /></span><h2>Party escaped!</h2><p>Your party made it out with {group.stats.gold} gold. The other parties can keep exploring.</p></div> :
+        game.phase === "complete" ? <div className="waiting-panel"><span><Trophy /></span><h2>Quest complete!</h2><p>Well explored, {group.name}. Your party earned {group.stats.gold} gold.</p></div> :
         <div className="group-exploration">
           <div className="group-exploration-main">
             <div className="tab-bar mobile-tabs" role="tablist" aria-label="Your adventurer pages">{tabOptions.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={id === "bestiary" || id === "bounties" ? creatureBook === id : tab === id} className={id === "bestiary" || id === "bounties" ? creatureBook === id ? "active" : "" : tab === id ? "active" : ""} onClick={() => {
