@@ -186,9 +186,9 @@ function PixelSprite({ characterClass, color, trimColor = "#d7d1c7", colors, cla
   // equipment changes details while every class keeps the same lean human frame.
   const torso: Record<string, string[]> = {
     tunic: ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", ".CC.CC.CC.", "..CCCCCC..", "..CC..CC.."],
-    plate: ["..MMMMMM..", ".MMMMMMMM.", ".MMTTTTMM.", ".MMMMMMMM.", "..MMMMMM..", "..MM..MM.."],
+    plate: ["..CCCCCC..", ".CCCCCCCC.", ".CCTTTTCC.", ".CCCCCCCC.", "..CCCCCC..", "..CC..CC.."],
     chainmail: ["...CCCC...", "..CCCCCC..", ".CTCTCTCC.", ".TCTCTCTC.", ".CTCTCTCC.", "..CCCCCC.."],
-    "full-plate": ["..MMMMMM..", ".MMMMMMMM.", ".MMTTTTMM.", ".MMMMMMMM.", "..MMMMMM..", "..MM..MM.."],
+    "full-plate": ["..CCCCCC..", ".CCCCCCCC.", ".CCTTTTCC.", ".CCCCCCCC.", "..CCCCCC..", "..CC..CC.."],
     vest: ["...CCCC...", "..CCCCCC..", ".CC..CCCC.", ".CC..CCCC.", "..C..CCC..", "..CCCCCC.."],
     cloak: ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", "..CCCCCC..", "..CCCCCC..", "..CCCCCC..", "...CCCC..."],
     leather: ["...BBBB...", "..BBBBBB..", ".BBTTTTBB.", ".BBTTTTBB.", "..BBBBBB..", "..BB..BB.."],
@@ -199,8 +199,8 @@ function PixelSprite({ characterClass, color, trimColor = "#d7d1c7", colors, cla
     // The sprite is only 18px wide and the torso covers the inner arm pixels.
     // Keep each exposed arm at least 2px wide so it reads as an arm, not a line.
     sleeves: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
-    gauntlets: ["..MM..........MM..", "..MMM........MMM..", "..MMM........MMM..", "...MM........MM...", "...SS........SS..."],
-    "plate-gauntlets": ["..MM..........MM..", "..MMM........MMM..", "..MMM........MMM..", "..MMM........MMM..", "...MM........MM...", "...SS........SS..."],
+    gauntlets: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
+    "plate-gauntlets": ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
     gloves: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...MM........MM...", "...SS........SS..."],
     bracers: ["..AA..........AA..", "..AAA........AAA..", "..TT..........TT..", "...AA........AA...", "...SS........SS..."],
     "archer-bracers": ["..AA..........AA..", "..AAA........AAA..", "..TT..........TT..", "..TT..........TT..", "...AA........AA...", "...SS........SS..."],
@@ -208,8 +208,8 @@ function PixelSprite({ characterClass, color, trimColor = "#d7d1c7", colors, cla
   };
   const legs: Record<string, string[]> = {
     trousers: ["..LL..LL..", "..LL..LL..", "..LL..LL..", ".LL....LL."],
-    greaves: ["..MM..MM..", "..MM..MM..", "..MT..TM..", ".MM....MM."],
-    "plate-greaves": ["..MM..MM..", ".MMT..TMM.", ".MMT..TMM.", "MMM....MMM"],
+    greaves: ["..LL..LL..", "..LL..LL..", "..LT..TL..", ".LL....LL."],
+    "plate-greaves": ["..LL..LL..", ".LLT..TLL.", ".LLT..TLL.", "LLL....LLL"],
     boots: ["..LL..LL..", "..LL..LL..", "..LL..LL..", ".LLL..LLL."],
     "leather-boots": ["..LL..LL..", ".LTT..TTL.", "..LL..LL..", ".LLL..LLL."],
     "forest-boots": ["..LL..LL..", ".LTT..TTL.", "..LL..LL..", "..LL..LL.."],
@@ -217,8 +217,8 @@ function PixelSprite({ characterClass, color, trimColor = "#d7d1c7", colors, cla
   };
   const headwear: Record<string, string[]> = {
     hair: ["..HHHH..", ".HHHHHH.", ".HH..HH.."],
-    helmet: ["..MMMM..", ".MMMMMM.", "MMMMMMMM", "MM....MM"],
-    "great-helm": [".MMMMMM.", "MMMMMMMM", "MMTTTTMM", "MMMMMMMM"],
+    helmet: ["..HHHH..", ".HHHHHH.", "HHHHHHHH", "HH....HH"],
+    "great-helm": [".HHHHHH.", "HHHHHHHH", "HHTTTTHH", "HHHHHHHH"],
     hood: ["..HHHH..", ".HHHHHH.", "HH....HH", "HH....HH"],
     mask: ["..HHHH..", ".HHHHHH.", ".HHHHHH.", "..HHHH.."],
     headband: ["..HHHH..", ".HHHHHH.", ".HTTTTH."],
@@ -1798,7 +1798,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
       <section className="creator-stats"><div className="creator-heading"><div><p className="form-label">{activeDraft.designStats ? `${activeDraft.name || "Hero"}’s saved stats` : `Roll ${activeDraft.name || "this hero"}’s stats`}</p><small>{activeDraft.designStats ? "These stats are part of the selected character design." : "Roll 4d6, drop the lowest die, then assign each result."}</small></div>{!activeDraft.designStats && <button type="button" className="roll-button" onClick={rollStats}>🎲 {activeDraft.rolls ? "Reroll" : "Roll stats"}</button>}</div>
         {activeDraft.designStats ? <div className="design-stat-summary party-design-stats"><span>Damage {activeDraft.designStats.damage}</span><span>Dexterity {activeDraft.designStats.dexterity}</span><span>Speed {activeDraft.designStats.speed}</span></div> : activeDraft.rolls ? <><div className="stat-roll-cards">{activeDraft.rolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>4D6 · DROP LOWEST</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex} className={dieIndex === 0 ? "drop-die" : ""}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={activeDraft.assignments[stat]} onChange={(event) => assign(stat, Number(event.target.value))}>{activeDraft.rolls!.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></> : <p className="muted roll-prompt">Tap “Roll stats” to get this hero’s three values.</p>}
       </section>
-      <section className="sprite-picker"><div><p className="form-label">Choose this hero’s primary color</p><small>Distinct colors make each hero easy to identify.</small></div><div className="sprite-options">{SPRITE_COLORS.map((color) => <button type="button" key={color} aria-label={`Choose sprite color ${color}`} aria-pressed={activeDraft.spriteColor === color} className={activeDraft.spriteColor === color ? "selected" : ""} onClick={() => updateDraft({ spriteColor: color })}><PixelSprite characterClass={activeDraft.characterClass} color={color} trimColor={activeDraft.trimColor} colors={activeDraft.partColors} appearance={activeDraft.appearance} /></button>)}</div></section>
+      <section className="sprite-picker"><div><p className="form-label">Choose this hero’s primary color</p><small>Distinct colors make each hero easy to identify.</small></div><div className="sprite-options">{SPRITE_COLORS.map((color) => <button type="button" key={color} aria-label={`Choose sprite color ${color}`} aria-pressed={activeDraft.spriteColor === color} className={activeDraft.spriteColor === color ? "selected" : ""} onClick={() => updateDraft({ spriteColor: color, partColors: defaultPartColors(color) })}><PixelSprite characterClass={activeDraft.characterClass} color={color} trimColor={activeDraft.trimColor} colors={defaultPartColors(color)} appearance={activeDraft.appearance} /></button>)}</div></section>
       <button className="primary big" disabled={joining || !name.trim() || roster.some((hero) => !hero.name.trim() || (!hero.rolls && !hero.designStats)) || new Set(roster.map((hero) => hero.name.trim().toLowerCase())).size !== roster.length}>{joining ? "Joining…" : "Join party"}<ChevronRight /></button></form>{error && <p className="error">{error}</p>}
   </section>;
   }
