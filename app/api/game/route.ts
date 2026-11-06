@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { ITEMS, PARTY_TONIC_HEAL, isItemId } from "../../items";
 import { CREATOR_COLORS, DEFAULT_MONSTER_STATS, RUN_ESCAPE_CHANCE, TRAP_DODGE_TARGET, clampCharacterStat, dodgeChance, defaultBodyParts, defaultPartColors, type BodyParts, type MonsterDesignStats, type PartColors, validBodyParts } from "../../creations";
 import { BOSSES } from "../../bosses";
 
@@ -303,6 +304,19 @@ function monsterAttack(group: Group, battle: Battle, fallback: Hero): MonsterAtt
     return { targetId: hero.id, targetName: hero.name, damage, dodged, dodgeRoll, dodgeChance: chance };
   });
   return { id: id(), hits };
+}
+/** Ends the battle and returns the party to the tile they came from. The monster stays, so stepping back starts a new battle. */
+function escapeBattle(room: Room, group: Group, battle: Battle): BattleEnd {
+  const floor = floorFor(room, battle.floor);
+  const previous = floor.tiles.find((tile) => tile.id === battle.retreatTileId)
+    ?? floor.tiles.find((tile) => Math.abs(tile.x - group.stats.x) + Math.abs(tile.y - group.stats.y) === 1 && tile.kind !== "exit" && (!tile.enemy || floor.defeated.includes(tile.id)));
+  if (previous) {
+    group.stats.x = previous.x;
+    group.stats.y = previous.y;
+  }
+  delete room.state.battles[group.id];
+  addFeed(room.state, `${group.name} escaped the battle.`);
+  return { id: id(), result: "escaped", enemy: battle.enemy };
 }
 function describeMonsterAttack(group: Group, enemy: string, attack: MonsterAttack) {
   const results = attack.hits.map((hit) => hit.dodged ? `${hit.targetName} dodges` : `${hit.targetName} takes ${hit.damage}`);
@@ -819,17 +833,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         const escaped = roll <= RUN_ESCAPE_CHANCE;
         addRoll(room.state, { groupId: group.id, actor: character.name, label: "Escape", dice: [roll], modifier: 0, total: roll, target: RUN_ESCAPE_CHANCE, success: escaped, sides: 100 });
         if (escaped) {
-          // Back to the tile they came from. The monster stays undefeated, so stepping back starts a new battle.
-          const floor = floorFor(room, battle.floor);
-          const previous = floor.tiles.find((tile) => tile.id === battle.retreatTileId)
-            ?? floor.tiles.find((tile) => Math.abs(tile.x - group.stats.x) + Math.abs(tile.y - group.stats.y) === 1 && tile.kind !== "exit" && (!tile.enemy || floor.defeated.includes(tile.id)));
-          if (previous) {
-            group.stats.x = previous.x;
-            group.stats.y = previous.y;
-          }
-          delete room.state.battles[group.id];
-          addFeed(room.state, `${group.name} escaped the battle.`);
-          battleEnd = { id: id(), result: "escaped", enemy: battle.enemy };
+          battleEnd = escapeBattle(room, group, battle);
           await saveRoom(room);
           return Response.json({ state: publicState(room, { playerId: group.id }), battleEnd });
         }
@@ -888,6 +892,19 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
       await saveRoom(room);
       return Response.json({ state: publicState(room, { playerId: group.id }), monsterAttack: attack, ...(battleEnd ? { battleEnd } : {}) });
     }
+    if (body.action === "buy") {
+      if (room.phase !== "exploration") return Response.json({ error: "The merchant only trades during the expedition." }, { status: 409 });
+      if (group.stats.floor > FLOOR_COUNT) return Response.json({ error: "Your party has already escaped the dungeon." }, { status: 409 });
+      if (battle) return Response.json({ error: "Finish your group's battle before trading." }, { status: 409 });
+      if (!isItemId(body.item)) return Response.json({ error: "The merchant does not sell that." }, { status: 400 });
+      const item = ITEMS[body.item];
+      if (group.stats.gold < item.price) return Response.json({ error: `You need ${item.price - group.stats.gold} more gold for that.` }, { status: 409 });
+      group.stats.gold -= item.price;
+      group.stats.inventory.push(body.item);
+      addFeed(room.state, `${group.name} bought a ${item.name} from the merchant.`);
+      await saveRoom(room);
+      return Response.json({ state: publicState(room, { playerId: group.id }) });
+    }
     if (body.action === "item") {
       let battleEnd: BattleEnd | undefined;
       let monsterAttackEffect: MonsterAttack | undefined;
@@ -924,13 +941,29 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         await saveRoom(room);
         return Response.json({ state: publicState(room, { playerId: group.id }), battleEffect, ...(monsterAttackEffect ? { monsterAttack: monsterAttackEffect } : {}), ...(battleEnd ? { battleEnd } : {}) });
       }
+      if (body.item === "smoke-bomb") {
+        if (!battle) return Response.json({ error: "Smoke Bombs can only be used during a battle." }, { status: 409 });
+        group.stats.inventory.splice(index, 1);
+        addFeed(room.state, `${actor?.name || group.name} threw a Smoke Bomb!`);
+        battleEnd = escapeBattle(room, group, battle);
+        await saveRoom(room);
+        return Response.json({ state: publicState(room, { playerId: group.id }), battleEnd });
+      }
       const target = group.characters.find((hero) => hero.id === body.targetCharacterId);
+      let recipient: string;
       if (body.item === "potion") {
         if (!target || target.hp <= 0) return Response.json({ error: "Choose a living character to receive the Healing Potion." }, { status: 400 });
         target.hp = Math.min(target.maxHp, target.hp + 8);
+        recipient = target.name;
       } else if (body.item === "phoenix-feather") {
         if (!target || target.hp > 0) return Response.json({ error: "Choose a fallen character to revive with the Phoenix Feather." }, { status: 400 });
         target.hp = Math.ceil(target.maxHp / 2);
+        recipient = target.name;
+      } else if (body.item === "party-tonic") {
+        const injured = livingCharacters(group).filter((hero) => hero.hp < hero.maxHp);
+        if (!injured.length) return Response.json({ error: "Nobody needs healing right now." }, { status: 409 });
+        for (const hero of injured) hero.hp = Math.min(hero.maxHp, hero.hp + PARTY_TONIC_HEAL);
+        recipient = "the party";
       } else return Response.json({ error: "That item cannot be used yet." }, { status: 400 });
       group.stats.inventory.splice(index, 1);
       refreshGroupStats(group);
@@ -939,7 +972,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         await saveRoom(room);
         return Response.json({ state: publicState(room, { playerId: group.id }) });
       }
-      if (!battle) addFeed(room.state, `${group.name} used a ${body.item === "potion" ? "Healing Potion" : "Phoenix Feather"} on ${target.name}.`);
+      if (!battle) addFeed(room.state, `${group.name} used a ${isItemId(body.item) ? ITEMS[body.item].name : "item"} on ${recipient}.`);
       if (battle) {
         if (actor) {
           battle.actedCharacterIds.push(actor.id);
@@ -950,10 +983,10 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
             refreshGroupStats(group);
             checkGameOver(room, group);
             if (group.gameOver) battleEnd = { id: id(), result: "defeat", enemy: battle.enemy };
-            addFeed(room.state, `${group.name} used an item on ${target.name}. ${describeMonsterAttack(group, battle.enemy, attack)}`);
-          } else addFeed(room.state, `${group.name} used an item on ${target.name}.`);
+            addFeed(room.state, `${group.name} used an item on ${recipient}. ${describeMonsterAttack(group, battle.enemy, attack)}`);
+          } else addFeed(room.state, `${group.name} used an item on ${recipient}.`);
           completeBattleRound(group, battle);
-        } else addFeed(room.state, `${group.name} used an item on ${target.name}.`);
+        } else addFeed(room.state, `${group.name} used an item on ${recipient}.`);
       }
       await saveRoom(room);
       return Response.json({ state: publicState(room, { playerId: group.id }), ...(monsterAttackEffect ? { monsterAttack: monsterAttackEffect } : {}), ...(battleEnd ? { battleEnd } : {}) });

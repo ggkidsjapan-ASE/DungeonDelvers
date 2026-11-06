@@ -90,15 +90,19 @@ Regular monsters scale with group size: 12 HP and 0.75× damage against one hero
 
 Inventory belongs to the group and can be opened from the player screen:
 
-| Item | Effect |
-| --- | --- |
-| Healing Potion | Restore up to 8 HP to one living hero. |
-| Phoenix Feather | Revive one fallen hero at half of their maximum HP. |
-| Bomb | Deal 12 damage to a monster during battle. |
+| Item | Merchant price | Effect |
+| --- | ---: | --- |
+| Healing Potion | 15 gold | Restore up to 8 HP to one living hero. |
+| Party Tonic | 30 gold | Restore up to 5 HP to every living hero. |
+| Smoke Bomb | 40 gold | Escape from a battle without fail. The monster stays on its tile. |
+| Bomb | 50 gold | Deal 12 damage to a monster during battle. |
+| Phoenix Feather | 100 gold | Revive one fallen hero at half of their maximum HP. |
 
-Potions and Phoenix Feathers can be used outside battle when their target is valid; Bombs can only be used during battle. In battle, a Potion or Bomb uses the active hero's turn. A Phoenix Feather can revive a fallen hero even when it is not a living hero's turn. A group is defeated only when all of its heroes are down and it has no Phoenix Feather left. Other groups are unaffected and can carry on.
+The merchant is in the side panel while exploring. Groups can trade with him at any time outside a battle, spending their own gold. Prices are set in `app/items.ts`.
 
-Monster bounties award gold on victory; chests can add gold or items. Gold is tracked per group and contributes to the expedition total.
+Potions, Party Tonics, and Phoenix Feathers can be used outside battle when their target is valid; Bombs and Smoke Bombs can only be used during battle. In battle, a Potion, Party Tonic, or Bomb uses the active hero's turn. A Phoenix Feather can revive a fallen hero even when it is not a living hero's turn. A group is defeated only when all of its heroes are down and it has no Phoenix Feather left. Other groups are unaffected and can carry on.
+
+Monster bounties award gold on victory; chests can add gold or items. Gold is tracked per group and contributes to the expedition total, so gold spent at the merchant no longer counts towards it.
 
 ## Workshop: saved content
 

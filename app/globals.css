@@ -2681,3 +2681,63 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .stat-guide p { display: flex; align-items: flex-start; gap: 7px; margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.2; }
 .stat-guide p strong { flex: 0 0 auto; width: 70px; color: var(--ink); }
 .stat-guide svg { flex: 0 0 auto; width: 15px; height: 15px; color: var(--flame); }
+
+/* The merchant: a card in the exploration side panel that opens his shop. */
+.merchant-card { display: grid; flex: 0 0 auto; grid-template-columns: 52px minmax(0, 1fr) 18px; align-items: center; gap: 8px; min-height: 60px; padding: 4px 8px; border: 2px solid #000; background: linear-gradient(180deg, #33273d, #1a141f); color: var(--ink); text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px #6d4c80; }
+.merchant-card:active { transform: translateY(2px); }
+.merchant-card svg.merchant-card-art { display: block; width: 52px; height: 52px; max-width: none; }
+.merchant-card small i { font-style: normal; }
+.merchant-card > span { display: grid; min-width: 0; }
+.merchant-card strong { color: #ffd493; font-family: var(--font-display); font-size: 1.02rem; }
+.merchant-card small { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.merchant-card small svg { flex: 0 0 auto; width: 13px; height: 13px; color: var(--flame); }
+.merchant-card > svg { width: 18px; height: 18px; color: var(--flame); }
+/* Short landscape iPads: the minimap and log share the left of the side panel, the merchant and inventory the right. */
+@media (orientation: landscape) and (max-height: 860px) {
+  .group-playing .group-exploration-side { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); grid-template-rows: auto 62px auto minmax(0, 1fr); grid-template-areas: "dice dice" "map merchant" "map inventory" "log inventory"; }
+  .group-playing .group-exploration-side > .dice-rolls { grid-area: dice; }
+  .group-playing .group-exploration-side > .player-minimap { grid-area: map; max-width: none; align-self: start; }
+  .group-playing .group-exploration-side > .merchant-card { grid-area: merchant; grid-template-columns: 44px minmax(0, 1fr); padding: 3px 6px; }
+  .group-playing .group-exploration-side > .merchant-card svg.merchant-card-art { width: 44px; height: 44px; }
+  .group-playing .group-exploration-side > .merchant-card > svg:last-child, .merchant-card small i { display: none; }
+  .group-playing .group-exploration-side > .inventory-panel { grid-area: inventory; }
+  .group-playing .group-exploration-side > .group-log { grid-area: log; }
+  .group-playing .group-exploration-side .inventory-item-copy strong { overflow: visible; white-space: normal; }
+}
+.merchant-dialog { display: grid; width: min(100%, 880px); max-height: 92svh; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); gap: 8px; padding: 8px; border: 8px solid #1a1a1e; border-image: url("/ui/frame.png") 10 stretch; background: #0d0b0c url("/ui/panel-stone.png"); background-clip: padding-box; image-rendering: pixelated; }
+.merchant-keeper { display: flex; min-height: 0; flex-direction: column; align-items: center; gap: 6px; padding: 10px; background: radial-gradient(ellipse at 50% 72%, #6b3f1a88, transparent 68%), #120e10; box-shadow: inset 0 0 0 1px #37343a; }
+.merchant-speech { position: relative; width: 100%; min-height: 78px; margin: 0 0 10px; padding: 9px 11px; border: 2px solid #000; background: #e7dcc2; color: #221a12; font-size: .98rem; line-height: 1.22; image-rendering: auto; }
+.merchant-speech::after { content: ""; position: absolute; bottom: -12px; left: 50%; border: 6px solid transparent; border-top-color: #e7dcc2; transform: translateX(-50%); }
+.merchant-portrait { display: block; flex: 1 1 auto; width: 100%; min-height: 0; max-width: 240px; padding: 0; border: 0; background: none; cursor: pointer; animation: merchant-idle 1.6s ease-in-out infinite alternate; }
+.merchant-art { display: block; width: 100%; height: 100%; max-height: 42svh; filter: drop-shadow(0 8px 6px #000); }
+.merchant-hint { color: var(--muted); font-size: .8rem; }
+@keyframes merchant-idle { to { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .merchant-portrait { animation: none; } }
+.merchant-stock { display: flex; min-width: 0; min-height: 0; flex-direction: column; gap: 6px; image-rendering: auto; }
+.merchant-stock > header { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 2px 4px; }
+.merchant-stock h2 { flex: 1 1 auto; margin: 0; color: #ffd493; font-family: var(--font-display); font-size: 1.35rem; }
+.merchant-purse { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border: 2px solid #000; background: #392f1a; color: #ffe08b; font-weight: 800; font-variant-numeric: lining-nums tabular-nums; }
+.merchant-purse svg { width: 16px; height: 16px; }
+.merchant-leave { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; padding: 4px 12px; }
+.merchant-leave svg { width: 16px; height: 16px; }
+.merchant-items { display: grid; min-height: 0; flex: 1 1 auto; gap: 5px; overflow-y: auto; }
+.merchant-item { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 6px 8px; border: 2px solid #000; background: linear-gradient(180deg, #2c2a2e, #18161a); box-shadow: inset 0 0 0 1px #47454c; }
+.merchant-item-icon { display: grid; place-items: center; color: var(--flame); }
+.merchant-item-icon svg { width: 30px; height: 30px; }
+.merchant-item-copy { display: grid; min-width: 0; }
+.merchant-item-copy strong { font-family: var(--font-display); font-size: 1.05rem; }
+.merchant-item-copy small { color: var(--muted); font-size: .84rem; line-height: 1.15; }
+.merchant-buy { display: inline-flex; min-width: 84px; min-height: 48px; align-items: center; justify-content: center; gap: 5px; padding: 4px 12px; border: 2px solid #000; background: linear-gradient(180deg, #7a1c14, #47100b); color: #ffe7ad; font-weight: 800; font-size: 1.05rem; font-variant-numeric: lining-nums tabular-nums; cursor: pointer; box-shadow: inset 0 0 0 2px #e8723a; }
+.merchant-buy:active { transform: translateY(2px); }
+.merchant-buy svg { width: 18px; height: 18px; }
+.too-expensive .merchant-buy { background: linear-gradient(180deg, #2c2a2e, #18161a); color: var(--muted); box-shadow: inset 0 0 0 1px #47454c; }
+.too-expensive .merchant-item-copy { opacity: .65; }
+@media (max-width: 720px), (orientation: portrait) {
+  .merchant-dialog { grid-template-columns: minmax(0, 1fr); }
+  .merchant-keeper { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .merchant-speech { flex: 1 1 60%; min-height: 0; margin: 0; order: 2; }
+  .merchant-speech::after { display: none; }
+  .merchant-portrait { flex: 0 0 110px; height: 110px; order: 1; }
+  .merchant-art { max-height: none; }
+  .merchant-hint { display: none; }
+}

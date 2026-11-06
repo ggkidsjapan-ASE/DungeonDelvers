@@ -363,6 +363,34 @@ export const Coins = icon([
   "...XXXXXX...",
   "............",
 ]);
+export const Tonic = icon([
+  "....XXXX....",
+  ".....XX.....",
+  "....XXXX....",
+  "...XXXXXX...",
+  "..XXXXXXXX..",
+  ".XXXX..XXXX.",
+  ".XXX....XXX.",
+  ".XXX....XXX.",
+  ".XXXX..XXXX.",
+  ".XXXXXXXXXX.",
+  "..XXXXXXXX..",
+  "............",
+]);
+export const Smoke = icon([
+  "............",
+  "...XXX......",
+  "..XXXXX.XX..",
+  "..XXXXXXXXX.",
+  ".XXXXXXXXXXX",
+  ".XXXXXXXXXXX",
+  "..XXXXXXXXX.",
+  "............",
+  "....XX..XX..",
+  "...XX....XX.",
+  "............",
+  "............",
+]);
 export const Bomb = icon([
   ".........XX.",
   ".......XX..X",

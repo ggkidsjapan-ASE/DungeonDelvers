@@ -7,8 +7,10 @@ import { BOSS_VIEW_BOX, findBoss } from "./bosses";
 import { HERO_VIEW_BOX, heroLayers, type PixelLayer } from "./hero-art";
 import { MONSTER_VIEW_BOX, monsterLayers } from "./monster-art";
 import QRCode from "qrcode";
-import { ArrowDownToLine, Bomb, BookOpen, Bow, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, Dice, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Sparkle, Swords, TriangleAlert, Trophy, Users, VolumeX, X } from "./pixel-icons";
+import { ArrowDownToLine, Bomb, BookOpen, Bow, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, Dice, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Smoke, Sparkle, Swords, Tonic, TriangleAlert, Trophy, Users, VolumeX, X } from "./pixel-icons";
 import { SCENE_VIEW_BOX, sceneObjectLayers, type SceneObject } from "./scene-art";
+import { ITEMS, PARTY_TONIC_HEAL, SHOP_ITEMS, isItemId, type ItemId } from "./items";
+import { MERCHANT_VIEW_BOX, merchantLayers } from "./merchant-art";
 import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, RUN_ESCAPE_CHANCE, TRAP_DODGE_TARGET, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
 
 type CharacterClass = CharacterClassType;
@@ -41,7 +43,12 @@ const SPRITE_COLORS = CREATOR_COLORS;
 const MAP_SIZE = 13;
 const MONSTER_TURN_ID = "__monster__";
 const MAX_GROUPS = 8;
-const ITEM_LABELS: Record<string, string> = { potion: "Healing Potion", "phoenix-feather": "Phoenix Feather", bomb: "Bomb" };
+const ITEM_ICONS: Record<ItemId, typeof Bomb> = { potion: FlaskConical, "party-tonic": Tonic, "smoke-bomb": Smoke, bomb: Bomb, "phoenix-feather": Feather };
+function ItemIcon({ item }: { item: string }) {
+  const Icon = isItemId(item) ? ITEM_ICONS[item] : Package;
+  return <Icon />;
+}
+function itemName(item: string) { return isItemId(item) ? ITEMS[item].name : item; }
 
 function battleTurnOrder(group: Group, battle: Battle) {
   return [
@@ -1184,7 +1191,7 @@ function GroupSummary({ group }: { group: Group }) {
 
 function InfoPanel({ game, tab }: { game: GameState; tab: Tab }) {
   if (tab === "bestiary") return <div className="info-grid">{game.bestiary.map((beast) => <article className="info-card" key={beast.name}><span><MonsterArt monster={beast} /></span><div><strong>{beast.name}{beast.boss ? " · Boss" : ""}</strong><p>{beast.description}</p><small>Damage {beast.damageMin}–{beast.damageMax} · Speed {beast.speed} · Bounty {beast.bounty} gold</small></div></article>)}</div>;
-  if (tab === "items") return <div className="info-grid">{Object.entries(ITEM_LABELS).map(([item, label]) => <article className="info-card" key={item}><span>{item === "potion" ? <FlaskConical /> : item === "phoenix-feather" ? <Feather /> : <Bomb />}</span><div><strong>{label}</strong><p>{item === "potion" ? "Restores up to 8 HP to one living hero." : item === "phoenix-feather" ? "Revives one fallen hero at half health." : "Deals 12 damage to a monster during battle."}</p></div></article>)}</div>;
+  if (tab === "items") return <div className="info-grid">{SHOP_ITEMS.map((item) => <article className="info-card" key={item}><span><ItemIcon item={item} /></span><div><strong>{ITEMS[item].name}</strong><p>{ITEMS[item].effect} Costs {ITEMS[item].price} gold at the merchant.</p></div></article>)}</div>;
   if (tab === "bounties") return <div className="info-grid">{game.bestiary.map((beast) => <article className="bounty-card" key={beast.name}><span><MonsterArt monster={beast} /> {beast.name}</span><strong>{beast.bounty} <small>gold</small></strong></article>)}</div>;
   return null;
 }
@@ -1257,31 +1264,35 @@ function InventoryPanel({ inventory, onSelect, compact = false, disabled = false
   return <section className={`inventory-panel ${compact ? "inventory-panel-compact" : ""}`}>
     <div className="inventory-heading"><h2><Package /> Inventory</h2><span>{inventory.length} carried</span></div>
     {inventory.length ? <div className="inventory-list">{Object.entries(itemCounts).map(([item, count]) => {
-      const icon = item === "potion" ? <FlaskConical /> : item === "phoenix-feather" ? <Feather /> : <Bomb />;
-      const description = item === "potion" ? "Restore up to 8 HP" : item === "phoenix-feather" ? "Revive a fallen hero" : "Deal 12 battle damage";
-      return <button className="inventory-item-card" key={item} disabled={disabled} onClick={() => onSelect(item)} aria-label={`Use ${ITEM_LABELS[item] || item}${count > 1 ? `, ${count} available` : ""}`}>
-        <span className="inventory-item-icon">{icon}</span>
-        <span className="inventory-item-copy"><strong>{ITEM_LABELS[item] || item}</strong><small>{description}</small></span>
+      return <button className="inventory-item-card" key={item} disabled={disabled} onClick={() => onSelect(item)} aria-label={`Use ${itemName(item)}${count > 1 ? `, ${count} available` : ""}`}>
+        <span className="inventory-item-icon"><ItemIcon item={item} /></span>
+        <span className="inventory-item-copy"><strong>{itemName(item)}</strong><small>{isItemId(item) ? ITEMS[item].description : ""}</small></span>
         {count > 1 && <b className="inventory-item-count">×{count}</b>}
       </button>;
-    })}</div> : <p className="muted inventory-empty">Your inventory is empty. Explore to find supplies.</p>}
+    })}</div> : <p className="muted inventory-empty">Your inventory is empty. Explore or visit the merchant.</p>}
   </section>;
 }
 
 function InventoryUseDialog({ item, characters, battleEnemy, inBattle, activeHero, onUse, onClose }: { item: string; characters: Hero[]; battleEnemy?: string; inBattle: boolean; activeHero?: Hero; onUse: (item: string, targetCharacterId?: string) => void; onClose: () => void }) {
-  const label = ITEM_LABELS[item] || item;
+  const label = itemName(item);
   const targets = item === "potion"
     ? characters.filter((hero) => hero.hp > 0 && hero.hp < hero.maxHp)
     : item === "phoenix-feather" ? characters.filter((hero) => hero.hp <= 0) : [];
   const usableOnTurn = !inBattle || !!activeHero || item === "phoenix-feather";
-  const icon = item === "potion" ? <FlaskConical /> : item === "phoenix-feather" ? <Feather /> : <Bomb />;
+  const injured = characters.filter((hero) => hero.hp > 0 && hero.hp < hero.maxHp);
   return <div className="inventory-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="inventory-use-dialog" role="dialog" aria-modal="true" aria-labelledby="inventory-dialog-title">
       <button className="inventory-dialog-close" onClick={onClose} aria-label="Close item selection"><X /></button>
-      <span className="inventory-use-icon">{icon}</span>
+      <span className="inventory-use-icon"><ItemIcon item={item} /></span>
       <p className="eyebrow">Choose a target</p>
       <h2 id="inventory-dialog-title">Use {label}</h2>
-      {item === "bomb" ? inBattle && activeHero
+      {item === "party-tonic" ? injured.length
+        ? <button className="inventory-target-card" disabled={!usableOnTurn} onClick={() => onUse(item)}><Heart /><span><strong>Whole party</strong><small>{injured.length} injured {injured.length === 1 ? "hero" : "heroes"} · up to +{PARTY_TONIC_HEAL} HP each</small></span><ChevronRight /></button>
+        : <p className="inventory-dialog-note">There are no injured living heroes who need healing.</p>
+        : item === "smoke-bomb" ? inBattle && activeHero
+        ? <button className="inventory-target-card inventory-target-enemy" onClick={() => onUse(item)}><DoorOpen /><span><strong>Escape from {battleEnemy}</strong><small>Your party flees. The monster stays on its tile.</small></span><ChevronRight /></button>
+        : <p className="inventory-dialog-note">{inBattle ? "Wait for an available hero's turn to throw this Smoke Bomb." : "Smoke Bombs can only be used during a battle."}</p>
+        : item === "bomb" ? inBattle && activeHero
         ? <button className="inventory-target-card inventory-target-enemy" onClick={() => onUse(item)}><Skull /><span><strong>{battleEnemy}</strong><small>Throw Bomb · deal 12 damage</small></span><ChevronRight /></button>
         : <p className="inventory-dialog-note">{inBattle ? "Wait for an available hero's turn to throw this Bomb." : "Bombs can only be used during a battle."}</p>
         : targets.length ? <div className="inventory-target-list">{targets.map((hero) => {
@@ -1398,7 +1409,7 @@ function HowToPlayDialog({ onClose }: { onClose: () => void }) {
         <article><span aria-hidden="true"><Map /></span><div><strong>Explore</strong><p>Tap a neighboring tile to move. Rooms reveal their contents when you enter. Every party explores separately, but discoveries are shared.</p></div></article>
         <article><span aria-hidden="true"><KeyRound /></span><div><strong>Find the key</strong><p>Search each floor for its key, then find the stairs to continue. Clear all three floors to finish the expedition.</p></div></article>
         <article><span aria-hidden="true"><Swords /></span><div><strong>Battle together</strong><p>Each living hero takes one action per round before the monster attacks. Fast heroes may dodge monster attacks. Running only has a {RUN_ESCAPE_CHANCE}% chance of working, and the monster will still be there if you come back.</p></div></article>
-        <article><span aria-hidden="true"><TriangleAlert /></span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of {TRAP_DODGE_TARGET} or more, so fast heroes dodge more often. Chests may hold gold, healing potions, a Phoenix Feather, or bombs.</p></div></article>
+        <article><span aria-hidden="true"><TriangleAlert /></span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of {TRAP_DODGE_TARGET} or more, so fast heroes dodge more often. Chests may hold gold or supplies, and the merchant trades supplies for gold.</p></div></article>
       </div>
       <button className="primary big" onClick={onClose}>Start exploring <ChevronRight /></button>
     </section>
@@ -1418,6 +1429,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
   const [battleEnd, setBattleEnd] = useState<BattleEnd | null>(null);
   const [lastBattle, setLastBattle] = useState<Battle | null>(null);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<string | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
   const [creatureBook, setCreatureBook] = useState<"bestiary" | "bounties" | null>(null);
   const closeCreatureBook = useCallback(() => setCreatureBook(null), []);
   const [battleAdvanceRetry, setBattleAdvanceRetry] = useState(0);
@@ -1635,6 +1647,11 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
           <aside className="group-exploration-side">
             <DiceRolls game={game} groupId={group.id} />
             {floor && <PlayerMinimap floor={floor} group={group} facing={explorationFacing} />}
+            <button type="button" className="merchant-card" onClick={() => setShopOpen(true)}>
+              <PixelGrid layers={merchantLayers()} className="merchant-card-art" label="" viewBox={MERCHANT_VIEW_BOX} />
+              <span><strong>Merchant</strong><small><Coins /> {group.stats.gold} gold<i> · Tap to trade</i></small></span>
+              <ChevronRight />
+            </button>
             <InventoryPanel inventory={group.stats.inventory} onSelect={setSelectedInventoryItem} />
             <div className="group-log">{game.feed.slice(0, 3).map((line, index) => <p key={`${index}-${line}`}>{line}</p>)}</div>
           </aside>
@@ -1648,8 +1665,58 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
       {trapRolls && <TrapEncounterDialog key={trapRolls.map((roll) => roll.id).join("-")} rolls={trapRolls} onClose={() => setTrapRolls(null)} />}
     {chestReward && <ChestRewardDialog key={chestReward.id} reward={chestReward} onClose={() => setChestReward(null)} />}
     {selectedInventoryItem && <InventoryUseDialog item={selectedInventoryItem} characters={group.characters} inBattle={false} onUse={useInventoryItem} onClose={() => setSelectedInventoryItem(null)} />}
+    {shopOpen && activelyExploring && <MerchantDialog gold={group.stats.gold} inventory={group.stats.inventory} onBuy={(item) => onAction("buy", { item })} onClose={() => setShopOpen(false)} />}
     {battleEnd && !battleEffect && !monsterAttack && !battleSequenceBusy && <BattleResultDialog outcome={battleEnd} onClose={() => { setBattleEnd(null); setLastBattle(null); }} />}
   </section>;
+}
+
+const MERCHANT_CHATTER = [
+  "Careful down here. I have buried better customers than you.",
+  "No refunds. The last person who asked is still in the walls.",
+  "Yes, I carry all of this myself. No, you may not lift it.",
+  "How do I get past the monsters? They owe me money.",
+];
+function MerchantDialog({ gold, inventory, onBuy, onClose }: { gold: number; inventory: string[]; onBuy: (item: ItemId) => Promise<GameApiResponse | undefined>; onClose: () => void }) {
+  const [line, setLine] = useState("Ah, customers! Gold spends the same down here. What do you need?");
+  const [chatter, setChatter] = useState(0);
+  const [buying, setBuying] = useState(false);
+  async function buy(item: ItemId) {
+    if (buying) return;
+    const info = ITEMS[item];
+    if (gold < info.price) {
+      setLine(`A ${info.name} is ${info.price} gold. You are ${info.price - gold} short, friend.`);
+      return;
+    }
+    setBuying(true);
+    const result = await onBuy(item);
+    setBuying(false);
+    setLine(result?.state ? info.merchantLine : "Something went wrong with the trade. Try that again.");
+  }
+  function talk() {
+    setLine(MERCHANT_CHATTER[chatter]);
+    setChatter((chatter + 1) % MERCHANT_CHATTER.length);
+  }
+  return <div className="inventory-dialog-backdrop merchant-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="merchant-dialog" role="dialog" aria-modal="true" aria-labelledby="merchant-title">
+      <div className="merchant-keeper">
+        <p className="merchant-speech" aria-live="polite">{line}</p>
+        <button type="button" className="merchant-portrait" onClick={talk} aria-label="Talk to the merchant"><PixelGrid layers={merchantLayers()} className="merchant-art" label="" viewBox={MERCHANT_VIEW_BOX} /></button>
+        <small className="merchant-hint">Tap him to chat</small>
+      </div>
+      <div className="merchant-stock">
+        <header><h2 id="merchant-title">The Merchant</h2><span className="merchant-purse"><Coins /> {gold} gold</span><button type="button" className="text-button merchant-leave" onClick={onClose}><X /> Leave</button></header>
+        <div className="merchant-items">{SHOP_ITEMS.map((item) => {
+          const info = ITEMS[item];
+          const carried = inventory.filter((entry) => entry === item).length;
+          return <article className={`merchant-item ${gold < info.price ? "too-expensive" : ""}`} key={item}>
+            <span className="merchant-item-icon"><ItemIcon item={item} /></span>
+            <span className="merchant-item-copy"><strong>{info.name}</strong><small>{info.description}{carried ? ` · Carrying ${carried}` : ""}</small></span>
+            <button type="button" className="merchant-buy" disabled={buying} onClick={() => buy(item)} aria-label={`Buy ${info.name} for ${info.price} gold`}><Coins /> {info.price}</button>
+          </article>;
+        })}</div>
+      </div>
+    </section>
+  </div>;
 }
 
 const CHEST_REWARD_OPTIONS = ["gold", "potion", "phoenix-feather", "bomb"] as const;
@@ -1678,8 +1745,8 @@ function ChestRewardDialog({ reward, onClose }: { reward: ChestReward; onClose: 
       window.clearTimeout(timer);
     };
   }, [reward.id, rewardKey]);
-  const rewardLabel = rewardKey === "gold" ? `${reward.amount} gold` : ITEM_LABELS[rewardKey] || rewardKey;
-  const previewLabel = preview === "gold" ? "Gold" : ITEM_LABELS[preview] || preview;
+  const rewardLabel = rewardKey === "gold" ? `${reward.amount} gold` : itemName(rewardKey);
+  const previewLabel = preview === "gold" ? "Gold" : itemName(preview);
   const rewardIcon = preview === "gold" ? <Coins /> : preview === "potion" ? <FlaskConical /> : preview === "phoenix-feather" ? <Feather /> : <Bomb />;
   return <div className="chest-dialog-backdrop">
     <section className="chest-dialog" role="dialog" aria-modal="true" aria-labelledby="chest-dialog-title">
