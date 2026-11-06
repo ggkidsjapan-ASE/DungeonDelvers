@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { CREATOR_COLORS, DEFAULT_MONSTER_STATS, defaultBodyParts, defaultPartColors, type BodyParts, type MonsterDesignStats, type PartColors, validBodyParts } from "../../creations";
+import { CREATOR_COLORS, DEFAULT_MONSTER_STATS, RUN_ESCAPE_CHANCE, TRAP_DODGE_TARGET, clampCharacterStat, dodgeChance, defaultBodyParts, defaultPartColors, type BodyParts, type MonsterDesignStats, type PartColors, validBodyParts } from "../../creations";
 import { BOSSES } from "../../bosses";
 
 type GamePhase = "lobby" | "exploration" | "complete";
@@ -7,7 +7,7 @@ type CharacterClass = "Warrior" | "Thief" | "Archer" | "Mage";
 type TileKind = "entrance" | "corridor" | "room" | "treasure" | "key" | "exit" | "trap";
 type Tile = { id: string; name: string; x: number; y: number; kind: TileKind; enemy?: string };
 type PublicTile = Omit<Tile, "name" | "kind" | "enemy"> & { name?: string; kind: TileKind | "hidden"; enemy?: string };
-type Battle = { groupId: string; floor: number; tileId: string; enemy: string; hp: number; maxHp: number; damageMin: number; damageMax: number; speed: number; actedCharacterIds: string[] };
+type Battle = { groupId: string; floor: number; tileId: string; enemy: string; hp: number; maxHp: number; damageMin: number; damageMax: number; speed: number; actedCharacterIds: string[]; retreatTileId?: string; targetCount?: number };
 type FloorState = { number: number; name?: string; tiles: Tile[]; starts: string[]; revealed: string[]; defeated: string[]; keyFound: boolean };
 type MonsterData = { name: string; icon: string; description: string; bounty: number; damageMin: number; damageMax: number; speed: number; boss?: boolean; color?: string; trimColor?: string; colors?: PartColors; appearance?: BodyParts; custom?: boolean };
 type DungeonState = { floors: FloorState[]; battles: Record<string, Battle>; feed: string[]; rolls: DiceRoll[]; bestiary: MonsterData[] };
@@ -16,8 +16,9 @@ type Hero = { id: string; name: string; characterClass: CharacterClass; icon: st
 type Group = { id: string; name: string; characterClass: CharacterClass; icon: string; stats: CharacterState; characters: Hero[]; gameOver: boolean };
 type DiceRoll = { id: string; groupId: string; actor: string; label: string; dice: number[]; modifier: number; total: number; target: number; success: boolean; sides: number; createdAt: number };
 type ChestReward = { id: string; kind: "gold" | "item"; amount?: number; item?: string };
-type BattleEffect = { id: string; actorId: string; actorName: string; characterClass: CharacterClass; kind: "sword-slash" | "arrow-volley" | "dagger-strike" | "magic-blast" | "bomb-blast"; hit: boolean; damage: number };
-type MonsterAttack = { id: string; targetId: string; targetName: string; damage: number; rolledDamage: number };
+type BattleEffect = { id: string; actorId: string; actorName: string; characterClass: CharacterClass; kind: "sword-slash" | "arrow-volley" | "dagger-strike" | "magic-blast" | "bomb-blast"; hit: boolean; damage: number; healed?: number };
+type MonsterHit = { targetId: string; targetName: string; damage: number; dodged: boolean; dodgeRoll: number; dodgeChance: number };
+type MonsterAttack = { id: string; hits: MonsterHit[] };
 type BattleEnd = { id: string; result: "victory" | "defeat" | "escaped"; enemy: string; gold?: number };
 type RoomRow = { code: string; teacher_token: string; phase: string; game_state: string; updated_at: number };
 type PlayerRow = { id: string; name: string; role: string; character_state: string };
@@ -27,6 +28,14 @@ type Room = { code: string; teacherToken: string; phase: GamePhase; state: Dunge
 const MAP_SIZE = 13;
 const FLOOR_COUNT = 3;
 const MONSTER_TURN_ID = "__monster__";
+// Regular monster strength by party size (1 to 4 heroes). A monster attacks once a round however many heroes it
+// faces, so larger parties need harder hits as well as more monster HP to feel any danger.
+const MONSTER_SCALING = [{ hp: 12, damage: 0.75 }, { hp: 20, damage: 1 }, { hp: 35, damage: 1.25 }, { hp: 50, damage: 1.75 }];
+// The weakest hero has 15 HP, so a regular monster can never take out a healthy hero with one hit.
+const MAX_MONSTER_HIT = 10;
+// Bosses are built for a party of four whatever the party size: their attacks hit several heroes at once.
+const BOSS_HP = 90;
+const BOSS_ATTACK_TARGETS = 3;
 const SPRITE_COLORS: readonly string[] = CREATOR_COLORS;
 const CLASS_DATA: Record<CharacterClass, { icon: string; hp: number; damage: number; dexterity: number; speed: number }> = {
   Warrior: { icon: "🛡️", hp: 25, damage: 12, dexterity: 10, speed: 8 },
@@ -280,11 +289,25 @@ function monsterAttack(group: Group, battle: Battle, fallback: Hero): MonsterAtt
   const target = livingCharacters(group).find((hero) => hero.guarding)
     || (fallback.hp > 0 ? fallback : livingCharacters(group).sort((first, second) => second.speed - first.speed)[0]);
   if (!target) throw new Error("Monster turn has no living target.");
-  const rolledDamage = battle.damageMin + Math.floor(Math.random() * (battle.damageMax - battle.damageMin + 1));
-  const damage = Math.max(1, rolledDamage - Math.floor(target.speed / 5) - (target.guarding ? 2 : 0));
-  target.guarding = false;
-  target.hp = Math.max(0, target.hp - damage);
-  return { id: id(), targetId: target.id, targetName: target.name, damage, rolledDamage };
+  const others = livingCharacters(group).filter((hero) => hero.id !== target.id).sort(() => Math.random() - 0.5);
+  const targets = [target, ...others].slice(0, battle.targetCount ?? 1);
+  // Every hero rolls their own damage and dodge.
+  const hits = targets.map((hero): MonsterHit => {
+    const rolledDamage = battle.damageMin + Math.floor(Math.random() * (battle.damageMax - battle.damageMin + 1));
+    const chance = dodgeChance(hero.speed);
+    const dodgeRoll = Math.floor(Math.random() * 100) + 1;
+    const dodged = dodgeRoll <= chance;
+    const damage = dodged ? 0 : Math.max(1, rolledDamage - (hero.guarding ? 2 : 0));
+    hero.guarding = false;
+    hero.hp = Math.max(0, hero.hp - damage);
+    return { targetId: hero.id, targetName: hero.name, damage, dodged, dodgeRoll, dodgeChance: chance };
+  });
+  return { id: id(), hits };
+}
+function describeMonsterAttack(group: Group, enemy: string, attack: MonsterAttack) {
+  const results = attack.hits.map((hit) => hit.dodged ? `${hit.targetName} dodges` : `${hit.targetName} takes ${hit.damage}`);
+  const fallen = attack.hits.filter((hit) => group.characters.find((hero) => hero.id === hit.targetId)?.hp === 0).map((hit) => `${hit.targetName} falls.`);
+  return [`${enemy.startsWith("The ") ? enemy : `The ${enemy}`} attacks: ${results.join(", ")}.`, ...fallen].join(" ");
 }
 function battleTurnOrder(group: Group, battle: Battle) {
   return [
@@ -303,12 +326,14 @@ function completeBattleRound(group: Group, battle: Battle) {
 function encounterFor(tile: Tile, floorNumber: number, partySize: number, monsters: MonsterData[]): Battle {
   const monster = monsters.find((entry) => entry.name === tile.enemy);
   if (!monster) throw new Error(`No bestiary entry found for ${tile.enemy}.`);
-  const partyHp = [15, 20, 30, 40][Math.min(Math.max(partySize, 1), MAX_GROUP_CHARACTERS) - 1];
-  const maxHp = partyHp * (monster.boss ? 2 : 1);
+  const scale = MONSTER_SCALING[Math.min(Math.max(partySize, 1), MONSTER_SCALING.length) - 1];
+  const maxHp = monster.boss ? BOSS_HP : scale.hp;
+  const scaledDamage = (damage: number) => monster.boss ? damage : Math.min(MAX_MONSTER_HIT, Math.max(1, Math.round(damage * scale.damage)));
   return {
     groupId: "", floor: floorNumber, tileId: tile.id, enemy: monster.name,
     maxHp, hp: maxHp,
-    damageMin: monster.damageMin, damageMax: monster.damageMax, speed: monster.speed,
+    damageMin: scaledDamage(monster.damageMin), damageMax: scaledDamage(monster.damageMax), speed: monster.speed,
+    targetCount: monster.boss ? BOSS_ATTACK_TARGETS : 1,
     actedCharacterIds: [],
   };
 }
@@ -387,7 +412,7 @@ function createHeroes(input: unknown): Hero[] | null {
     const base = CLASS_DATA[characterClass];
     heroes.push({
       id: id(), name, characterClass, icon: base.icon, level: 1, xp: 0, hp: base.hp, maxHp: base.hp,
-      damage, dexterity, speed, guarding: false, spriteColor: String(draft.spriteColor), trimColor, partColors, appearance: draft.appearance,
+      damage: clampCharacterStat(damage), dexterity: clampCharacterStat(dexterity), speed: clampCharacterStat(speed), guarding: false, spriteColor: String(draft.spriteColor), trimColor, partColors, appearance: draft.appearance,
     });
   }
   if (new Set(heroes.map((hero) => hero.name.toLowerCase())).size !== heroes.length) return null;
@@ -590,7 +615,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
       let inputCharacters: unknown;
       try { inputCharacters = JSON.parse(body.characters || "null"); } catch { inputCharacters = null; }
       const characters = createHeroes(inputCharacters);
-      if (!characters) return Response.json({ error: "Add 1–4 named characters, choose each class and color, and assign three different stats between 3 and 18." }, { status: 400 });
+      if (!characters) return Response.json({ error: "Add 1–4 named characters, choose each class and color, and assign their three stats." }, { status: 400 });
       const characterClass = characters[0].characterClass;
       if (room.groups.some((group) => group.name.toLowerCase() === name.toLowerCase())) return Response.json({ error: "That group name is already taken." }, { status: 409 });
       const first = characters[0];
@@ -653,6 +678,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
       let trapRolls: DiceRoll[] | undefined;
       let chestReward: ChestReward | undefined;
       let monsterAttackEffect: MonsterAttack | undefined;
+      const cameFrom = floor.tiles.find((candidate) => candidate.x === group.stats.x && candidate.y === group.stats.y);
       group.stats.x = tile.x;
       group.stats.y = tile.y;
       if (!floor.revealed.includes(tile.id)) floor.revealed.push(tile.id);
@@ -694,7 +720,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
           return Response.json({ error: "Another party is already facing this monster." }, { status: 409 });
         }
         const encounter = encounterFor(tile, floor.number, group.characters.length, room.state.bestiary);
-        room.state.battles[group.id] = { ...encounter, groupId: group.id };
+        room.state.battles[group.id] = { ...encounter, groupId: group.id, retreatTileId: cameFrom?.id };
         addFeed(room.state, `${group.name} encountered a ${encounter.enemy}!`);
         const battle = room.state.battles[group.id];
         if (nextBattleActor(group, battle) === MONSTER_TURN_ID) {
@@ -703,7 +729,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
             const attack = monsterAttack(group, battle, firstHero);
             battle.actedCharacterIds.push(MONSTER_TURN_ID);
             monsterAttackEffect = attack;
-            addFeed(room.state, `The ${battle.enemy} strikes first, hitting ${attack.targetName} for ${attack.damage} damage (${attack.rolledDamage} before defence).`);
+            addFeed(room.state, `Strikes first! ${describeMonsterAttack(group, battle.enemy, attack)}`);
             refreshGroupStats(group);
             checkGameOver(room, group);
             completeBattleRound(group, battle);
@@ -714,13 +740,13 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         trapRolls = targets.map((target) => {
           const roll = Math.floor(Math.random() * 20) + 1;
           const total = roll + target.speed;
-          const result = addRoll(room.state, { groupId: group.id, actor: target.name, label: "Trap evasion", dice: [roll], modifier: target.speed, total, target: 15, success: total >= 15, sides: 20 });
-          if (total >= 15) {
-            addFeed(room.state, `${target.name} spotted the trap and dodged it! (d20 ${roll} + Speed ${target.speed} = ${total}; needed 15.)`);
+          const result = addRoll(room.state, { groupId: group.id, actor: target.name, label: "Trap evasion", dice: [roll], modifier: target.speed, total, target: TRAP_DODGE_TARGET, success: total >= TRAP_DODGE_TARGET, sides: 20 });
+          if (total >= TRAP_DODGE_TARGET) {
+            addFeed(room.state, `${target.name} spotted the trap and dodged it! (d20 ${roll} + Speed ${target.speed} = ${total}; needed ${TRAP_DODGE_TARGET}.)`);
           } else {
             const damage = 4;
             target.hp = Math.max(0, target.hp - damage);
-            addFeed(room.state, `${target.name} failed to evade the trap and took ${damage} damage. (d20 ${roll} + Speed ${target.speed} = ${total}; needed 15.)${target.hp === 0 ? ` ${target.name} falls.` : ""}`);
+            addFeed(room.state, `${target.name} failed to evade the trap and took ${damage} damage. (d20 ${roll} + Speed ${target.speed} = ${total}; needed ${TRAP_DODGE_TARGET}.)${target.hp === 0 ? ` ${target.name} falls.` : ""}`);
           }
           return result;
         });
@@ -742,6 +768,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
       let message = "";
       let effectHit = true;
       let effectDamage = 0;
+      let healedAmount: number | undefined;
       let battleEnd: BattleEnd | undefined;
       if (body.move === "guard") {
         if (character.characterClass !== "Warrior") return Response.json({ error: "Only a Warrior can guard." }, { status: 400 });
@@ -749,12 +776,13 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         message = `${character.name} braces for the next hit.`;
       } else if (body.move === "heal") {
         if (character.characterClass !== "Mage") return Response.json({ error: "Only a Mage can cast healing." }, { status: 400 });
-        const target = group.characters.filter((hero) => hero.hp > 0).sort((first, second) => first.hp / first.maxHp - second.hp / second.maxHp)[0];
-        const healed = target ? Math.min(5, target.maxHp - target.hp) : 0;
-        if (target) target.hp += healed;
-        effectDamage = Math.max(1, Math.floor(character.damage / 2));
-        battle.hp -= effectDamage;
-        message = `${character.name} heals ${target?.name || "the party"} for ${healed} HP.`;
+        const target = group.characters.find((hero) => hero.id === body.targetCharacterId && hero.hp > 0);
+        if (!target) return Response.json({ error: "Choose a living ally to heal." }, { status: 400 });
+        const healed = Math.min(5, target.maxHp - target.hp);
+        if (healed === 0) return Response.json({ error: `${target.name} is already at full health.` }, { status: 409 });
+        target.hp += healed;
+        healedAmount = healed;
+        message = `${character.name} heals ${target.name} for ${healed} HP.`;
       } else if (body.move === "steal") {
         if (character.characterClass !== "Thief") return Response.json({ error: "Only a Thief can use this skill." }, { status: 400 });
         group.stats.gold += 8;
@@ -787,11 +815,14 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
           message = `${character.name} attacks for ${damage} damage.`;
         }
       } else if (body.move === "run") {
-        const roll = Math.floor(Math.random() * 20) + 1;
-        addRoll(room.state, { groupId: group.id, actor: character.name, label: "Escape", dice: [roll], modifier: 0, total: roll, target: 11, success: roll >= 11, sides: 20 });
-        if (roll >= 11) {
+        const roll = Math.floor(Math.random() * 100) + 1;
+        const escaped = roll <= RUN_ESCAPE_CHANCE;
+        addRoll(room.state, { groupId: group.id, actor: character.name, label: "Escape", dice: [roll], modifier: 0, total: roll, target: RUN_ESCAPE_CHANCE, success: escaped, sides: 100 });
+        if (escaped) {
+          // Back to the tile they came from. The monster stays undefeated, so stepping back starts a new battle.
           const floor = floorFor(room, battle.floor);
-          const previous = floor.tiles.find((tile) => Math.abs(tile.x - group.stats.x) + Math.abs(tile.y - group.stats.y) === 1 && tile.kind !== "exit");
+          const previous = floor.tiles.find((tile) => tile.id === battle.retreatTileId)
+            ?? floor.tiles.find((tile) => Math.abs(tile.x - group.stats.x) + Math.abs(tile.y - group.stats.y) === 1 && tile.kind !== "exit" && (!tile.enemy || floor.defeated.includes(tile.id)));
           if (previous) {
             group.stats.x = previous.x;
             group.stats.y = previous.y;
@@ -809,7 +840,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
         : character.characterClass === "Archer" ? "arrow-volley"
           : character.characterClass === "Thief" ? "dagger-strike" : "magic-blast";
       const battleEffect: BattleEffect | undefined = ["attack", "double", "heal", "steal"].includes(body.move)
-        ? { id: id(), actorId: character.id, actorName: character.name, characterClass: character.characterClass, kind: effectKind, hit: effectHit, damage: effectDamage }
+        ? { id: id(), actorId: character.id, actorName: character.name, characterClass: character.characterClass, kind: effectKind, hit: effectHit, damage: effectDamage, ...(healedAmount !== undefined ? { healed: healedAmount } : {}) }
         : undefined;
       let monsterAttackEffect: MonsterAttack | undefined;
       battle.actedCharacterIds.push(character.id);
@@ -821,16 +852,12 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
           const attack = monsterAttack(group, battle, character);
           monsterAttackEffect = attack;
           battle.actedCharacterIds.push(MONSTER_TURN_ID);
-          message += ` The ${battle.enemy} hits ${attack.targetName} for ${attack.damage} (${attack.rolledDamage} before defence).`;
+          message += ` ${describeMonsterAttack(group, battle.enemy, attack)}`;
           refreshGroupStats(group);
           checkGameOver(room, group);
           if (group.gameOver) battleEnd = { id: id(), result: "defeat", enemy: battle.enemy };
         }
         completeBattleRound(group, battle);
-        const resolvedMonsterAttack = monsterAttackEffect;
-        if (resolvedMonsterAttack && group.characters.find((hero) => hero.id === resolvedMonsterAttack.targetId)?.hp === 0) {
-          message += ` ${resolvedMonsterAttack.targetName} falls.`;
-        }
         if (!monsterAttackEffect && !battleEnd) {
           const turnsRemain = livingCharacters(group).filter((hero) => !battle.actedCharacterIds.includes(hero.id)).length;
           if (turnsRemain) message += ` ${turnsRemain} initiative turn(s) remain this round.`;
@@ -856,9 +883,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
       refreshGroupStats(group);
       checkGameOver(room, group);
       const battleEnd: BattleEnd | undefined = group.gameOver ? { id: id(), result: "defeat", enemy: battle.enemy } : undefined;
-      const message = `The ${battle.enemy} hits ${attack.targetName} for ${attack.damage} (${attack.rolledDamage} before defence).`;
-      const target = group.characters.find((hero) => hero.id === attack.targetId);
-      addFeed(room.state, `${message}${target?.hp === 0 ? ` ${attack.targetName} falls.` : ""}`);
+      addFeed(room.state, describeMonsterAttack(group, battle.enemy, attack));
       completeBattleRound(group, battle);
       await saveRoom(room);
       return Response.json({ state: publicState(room, { playerId: group.id }), monsterAttack: attack, ...(battleEnd ? { battleEnd } : {}) });
@@ -892,7 +917,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
           refreshGroupStats(group);
           checkGameOver(room, group);
           if (group.gameOver) battleEnd = { id: id(), result: "defeat", enemy: battle.enemy };
-          message += ` The ${battle.enemy} hits ${attack.targetName} for ${attack.damage} (${attack.rolledDamage} before defence).`;
+          message += ` ${describeMonsterAttack(group, battle.enemy, attack)}`;
         }
         if (battle.hp > 0) completeBattleRound(group, battle);
         addFeed(room.state, message);
@@ -925,7 +950,7 @@ async function handleAction(body: Record<string, string>): Promise<Response> {
             refreshGroupStats(group);
             checkGameOver(room, group);
             if (group.gameOver) battleEnd = { id: id(), result: "defeat", enemy: battle.enemy };
-            addFeed(room.state, `${group.name} used an item on ${target.name}. The ${battle.enemy} hits ${attack.targetName} for ${attack.damage} (${attack.rolledDamage} before defence).`);
+            addFeed(room.state, `${group.name} used an item on ${target.name}. ${describeMonsterAttack(group, battle.enemy, attack)}`);
           } else addFeed(room.state, `${group.name} used an item on ${target.name}.`);
           completeBattleRound(group, battle);
         } else addFeed(room.state, `${group.name} used an item on ${target.name}.`);

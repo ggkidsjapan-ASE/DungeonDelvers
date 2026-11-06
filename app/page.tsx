@@ -7,9 +7,9 @@ import { BOSS_VIEW_BOX, findBoss } from "./bosses";
 import { HERO_VIEW_BOX, heroLayers, type PixelLayer } from "./hero-art";
 import { MONSTER_VIEW_BOX, monsterLayers } from "./monster-art";
 import QRCode from "qrcode";
-import { ArrowDownToLine, Bomb, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, Dice, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Sparkle, Swords, TriangleAlert, Trophy, Users, VolumeX, X } from "./pixel-icons";
+import { ArrowDownToLine, Bomb, BookOpen, Bow, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, Dice, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Sparkle, Swords, TriangleAlert, Trophy, Users, VolumeX, X } from "./pixel-icons";
 import { SCENE_VIEW_BOX, sceneObjectLayers, type SceneObject } from "./scene-art";
-import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
+import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, RUN_ESCAPE_CHANCE, TRAP_DODGE_TARGET, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
 
 type CharacterClass = CharacterClassType;
 type CharacterState = { level: number; xp: number; hp: number; maxHp: number; damage: number; dexterity: number; speed: number; gold: number; floor: number; x: number; y: number; hasKey: boolean; inventory: string[]; spriteColor: string };
@@ -19,11 +19,12 @@ type Tile = { id: string; name?: string; x: number; y: number; kind: "hidden" | 
 type MapTile = Omit<Tile, "kind"> & { kind: Exclude<Tile["kind"], "hidden" | "entrance"> };
 type MapTemplate = { id: string; name: string; tiles: MapTile[]; starts: string[] };
 type FloorMap = { number: number; name?: string; tiles: Tile[]; revealed: string[]; defeated: string[]; keyFound: boolean };
-type Battle = { groupId: string; floor: number; tileId: string; enemy: string; hp: number; maxHp: number; damageMin: number; damageMax: number; speed: number; actedCharacterIds: string[] };
+type Battle = { groupId: string; floor: number; tileId: string; enemy: string; hp: number; maxHp: number; damageMin: number; damageMax: number; speed: number; actedCharacterIds: string[]; targetCount?: number };
 type DiceRoll = { id: string; groupId: string; actor: string; label: string; dice: number[]; modifier: number; total: number; target: number; success: boolean; sides: number; createdAt: number };
 type ChestReward = { id: string; kind: "gold" | "item"; amount?: number; item?: string };
-type BattleEffect = { id: string; actorId: string; actorName: string; characterClass: CharacterClass; kind: "sword-slash" | "arrow-volley" | "dagger-strike" | "magic-blast" | "bomb-blast"; hit: boolean; damage: number };
-type MonsterAttack = { id: string; targetId: string; targetName: string; damage: number; rolledDamage: number };
+type BattleEffect = { id: string; actorId: string; actorName: string; characterClass: CharacterClass; kind: "sword-slash" | "arrow-volley" | "dagger-strike" | "magic-blast" | "bomb-blast"; hit: boolean; damage: number; healed?: number };
+type MonsterHit = { targetId: string; targetName: string; damage: number; dodged: boolean; dodgeRoll: number; dodgeChance: number };
+type MonsterAttack = { id: string; hits: MonsterHit[] };
 type BattleEnd = { id: string; result: "victory" | "defeat" | "escaped"; enemy: string; gold?: number };
 type MapMarkerKind = "path" | "start" | "monster" | "corpse" | "chest" | "trap" | "key" | "exit";
 type BestiaryEntry = { name: string; icon: string; description: string; bounty: number; damageMin: number; damageMax: number; speed: number; boss?: boolean; color?: string; trimColor?: string; colors?: PartColors; appearance?: BodyParts; custom?: boolean };
@@ -34,7 +35,7 @@ const CLASSES: { name: CharacterClass; icon: string; description: string; hp: nu
   { name: "Warrior", icon: "🛡️", description: "Front-line defender. Guard to reduce a hit.", hp: 25 },
   { name: "Thief", icon: "🗡️", description: "Fast and clever. Mug monsters for gold.", hp: 15 },
   { name: "Archer", icon: "🏹", description: "Sure-shot ranger. Fire two arrows at once.", hp: 15 },
-  { name: "Mage", icon: "🔮", description: "Arcane healer. Recover HP while dealing damage.", hp: 20 },
+  { name: "Mage", icon: "🔮", description: "Arcane healer. Restores an ally's HP in battle.", hp: 20 },
 ];
 const SPRITE_COLORS = CREATOR_COLORS;
 const MAP_SIZE = 13;
@@ -585,7 +586,7 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
           ? <div className="monster-card-nameplate"><strong>{design.name}</strong><span>BESTIARY SPECIMEN</span></div>
           : <div className="monster-card-nameplate character-card-nameplate"><strong>{design.name}</strong><span>{design.characterClass.toUpperCase()} · HERO</span></div>}
         <div className="design-card-preview">{design.kind === "character" ? <PixelSprite characterClass={design.characterClass} color={design.color} trimColor={design.trimColor} colors={design.colors} appearance={design.parts} /> : <MonsterSprite monster={design} />}</div>
-        <div className="design-card-copy"><div className="design-card-stats">{design.kind === "character" ? <><span>DMG {design.stats.damage}</span><span>DEX {design.stats.dexterity}</span><span>SPD {design.stats.speed}</span></> : <><span>DMG {design.stats.damageMin}–{design.stats.damageMax}</span><span>SPD {design.stats.speed}</span><span>{design.stats.bounty} gold</span></>}</div></div>
+        <div className="design-card-copy"><div className="design-card-stats">{design.kind === "character" ? <><span>DMG {design.stats.damage}</span><span>ACC {design.stats.dexterity}</span><span>SPD {design.stats.speed}</span></> : <><span>DMG {design.stats.damageMin}–{design.stats.damageMax}</span><span>SPD {design.stats.speed}</span><span>{design.stats.bounty} gold</span></>}</div></div>
         <div className="design-card-actions">
           <button className="text-button" onClick={() => setEditingDesign({ kind: design.kind, design })} aria-label={`Edit ${design.name}`}><Pencil /> Edit</button>
           <button className="text-button danger" onClick={() => deleteDesign(design)} aria-label={`Delete ${design.name}`}>Delete</button>
@@ -703,7 +704,7 @@ function DesignEditor({ kind, initialDesign, onClose, onSave }: { kind: CreatorK
       <div className="workshop-heading"><p className="eyebrow">{kind === "character" ? "Hero workshop" : "Monster workshop"}</p><h1>{initialDesign ? "Edit design" : `Create a ${kind}`}</h1><p>Each body part changes the sprite. Roll stats here to save them with the design.</p></div>
       <div className="design-editor-layout">
         <div className="design-preview-card">{kind === "character" ? <PixelSprite characterClass={characterClass} color={color} trimColor={trimColor} colors={partColors} appearance={parts} /> : <MonsterSprite monster={{ name: name || "Your monster", color, trimColor, colors: partColors, appearance: parts }} />}<strong>{name || (kind === "character" ? characterClass : "Your monster")}</strong><span>{kind === "character" ? characterClass : "Custom dungeon monster"}</span>
-          {kind === "character" && characterStats && <div className="design-stat-summary"><span>DMG {characterStats.damage}</span><span>DEX {characterStats.dexterity}</span><span>SPD {characterStats.speed}</span></div>}
+          {kind === "character" && characterStats && <div className="design-stat-summary"><span>DMG {characterStats.damage}</span><span>ACC {characterStats.dexterity}</span><span>SPD {characterStats.speed}</span></div>}
           {kind === "monster" && monsterStats && <div className="design-stat-summary"><span>DMG {monsterStats.damageMin}–{monsterStats.damageMax}</span><span>SPD {monsterStats.speed}</span><span>{monsterStats.bounty} gold</span></div>}
         </div>
         <div className="design-controls">
@@ -712,9 +713,10 @@ function DesignEditor({ kind, initialDesign, onClose, onSave }: { kind: CreatorK
           <div className="body-part-grid">{Object.entries(options).map(([part, values]) => <label className="creator-field" key={part}>{part === "tail" || part === "wings" ? `${part} (optional)` : part}<select value={parts[part as keyof BodyParts] || "none"} onChange={(event) => updatePart(part as keyof BodyParts, event.target.value)}>{values.map((value) => <option value={value} key={value}>{value.replaceAll("-", " ")}</option>)}</select></label>)}</div>
           <section className="design-stat-controls">
             {kind === "character" ? <>
-              <div className="creator-heading"><div><p className="form-label">Roll hero stats</p><small>Roll 4d6, drop the lowest, then assign the results.</small></div><button type="button" className="roll-button" onClick={rollCharacterStats}><Dice /> {characterStats ? "Reroll" : "Roll stats"}</button></div>
-              {characterRolls ? <><div className="stat-roll-cards">{characterRolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>4D6 · DROP LOWEST</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex} className={dieIndex === 0 ? "drop-die" : ""}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={assignments[stat]} onChange={(event) => assignCharacterStat(stat, Number(event.target.value))}>{characterRolls.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></>
-                : characterStats ? <p className="muted">Saved stats: Damage {characterStats.damage}, Dexterity {characterStats.dexterity}, Speed {characterStats.speed}. Reroll to replace them.</p>
+              <div className="creator-heading"><div><p className="form-label">Roll hero stats</p><small>Roll 2d6 + 3 for each stat (5 to 15), then choose which roll goes where.</small></div><button type="button" className="roll-button" onClick={rollCharacterStats}><Dice /> {characterStats ? "Reroll" : "Roll stats"}</button></div>
+              <StatGuide />
+              {characterRolls ? <><div className="stat-roll-cards">{characterRolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>2D6 + 3</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={assignments[stat]} onChange={(event) => assignCharacterStat(stat, Number(event.target.value))}>{characterRolls.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></>
+                : characterStats ? <p className="muted">Saved stats: Damage {characterStats.damage}, Accuracy {characterStats.dexterity}, Speed {characterStats.speed}. Reroll to replace them.</p>
                   : <p className="muted roll-prompt">Roll three stats to finish this character design.</p>}
             </> : <>
               <div className="creator-heading"><div><p className="form-label">Roll monster stats</p><small>Damage range d6 + d6 · Speed 3d6 · Bounty 2d6 × 5 gold.</small></div><button type="button" className="roll-button" onClick={rollMonsterStats}><Dice /> {monsterStats ? "Reroll" : "Roll stats"}</button></div>
@@ -735,90 +737,90 @@ function DesignEditor({ kind, initialDesign, onClose, onSave }: { kind: CreatorK
 }
 
 function BattleScreen({ game, group, battle, battleEffect, monsterAttack, sequenceBusy, onAction, onOpenInventory, onRetryMonsterTurn, error }: { game: GameState; group: Group; battle: Battle; battleEffect: BattleEffect | null; monsterAttack: MonsterAttack | null; sequenceBusy: boolean; onAction: (action: string, details?: Record<string, string>) => Promise<GameApiResponse | undefined>; onOpenInventory: (item: string) => void; onRetryMonsterTurn: () => void; error: string }) {
+  const [showItems, setShowItems] = useState(false);
+  const [choosingHealTarget, setChoosingHealTarget] = useState(false);
   const livingHeroes = group.characters.filter((hero) => hero.hp > 0);
   const nextActorId = nextBattleActor(group, battle);
   const activeHero = nextActorId && nextActorId !== MONSTER_TURN_ID
     ? livingHeroes.find((hero) => hero.id === nextActorId)
     : undefined;
-  const effectActor = battleEffect ? group.characters.find((hero) => hero.id === battleEffect.actorId) : undefined;
-  const incomingTarget = monsterAttack ? group.characters.find((hero) => hero.id === monsterAttack.targetId) : undefined;
-  const displayedHero = incomingTarget || effectActor || activeHero;
   const monster = game.bestiary.find((beast) => beast.name === battle.enemy);
+  const someoneInjured = livingHeroes.some((hero) => hero.hp < hero.maxHp);
 
   function act(move: string) {
     if (activeHero && !sequenceBusy) void onAction("battle", { move, characterId: activeHero.id });
   }
+  function healAlly(targetCharacterId: string) {
+    setChoosingHealTarget(false);
+    if (activeHero && !sequenceBusy) void onAction("battle", { move: "heal", characterId: activeHero.id, targetCharacterId });
+  }
+  function selectItem(item: string) {
+    setShowItems(false);
+    onOpenInventory(item);
+  }
 
-  return <main className="battle-screen">
+  return <main className="battle-screen rpg-battle">
     <header className="battle-screen-topbar"><Brand /><span className="battle-floor-label">FLOOR {battle.floor} · {monster?.boss ? "BOSS BATTLE" : "ENCOUNTER"}</span><span className="battle-party-label">{group.name}</span></header>
-    <div className="battle-screen-content">
-      <div className="battle-screen-heading"><p className="eyebrow">A monster blocks your path</p><h1>{battle.enemy}</h1></div>
-      <section className="battle-arena" aria-label={`${group.name} fighting ${battle.enemy}`}>
-        <div className="battle-monster-status">
-          <div><strong>{battle.enemy}</strong><span>{battle.hp} / {battle.maxHp} HP · SPD {battle.speed} · DMG {battle.damageMin}–{battle.damageMax}</span></div>
-          <div className="health-track enemy"><i style={{ width: `${Math.max(0, battle.hp / battle.maxHp * 100)}%` }} /></div>
-        </div>
-        <div className="battle-ground">
-          {battleEffect && <div key={battleEffect.id} className={`battle-combat-effect effect-${battleEffect.kind} ${battleEffect.hit ? "effect-hit" : "effect-miss"}`} aria-live="polite">
-            <span className="combat-effect-actor">{battleEffect.actorName}</span>
-            <span className="combat-effect-projectile" aria-hidden="true">{battleEffect.kind === "sword-slash" ? "⚔" : battleEffect.kind === "arrow-volley" ? "➶ ➶" : battleEffect.kind === "dagger-strike" ? "🗡 🗡" : battleEffect.kind === "magic-blast" ? "✦" : "💥"}</span>
-            <strong>{battleEffect.hit ? `-${battleEffect.damage} HP` : "MISS"}</strong>
-          </div>}
-          {monsterAttack && <div key={monsterAttack.id} className="battle-monster-attack" aria-live="assertive"><strong>{battle.enemy} attacks!</strong><span>{monsterAttack.targetName} · rolled {monsterAttack.rolledDamage} · −{monsterAttack.damage} HP</span></div>}
-          <div className="battle-actor">
-            <span className={`battle-actor-sprite ${displayedHero ? "" : "battle-actor-waiting"} ${battleEffect && effectActor?.id === displayedHero?.id ? `battle-actor-attacking attack-${battleEffect.kind}` : ""} ${monsterAttack?.targetId === displayedHero?.id ? "battle-hero-hit" : ""}`}>{displayedHero ? <PixelSprite characterClass={displayedHero.characterClass} color={displayedHero.spriteColor} trimColor={displayedHero.trimColor} colors={displayedHero.partColors} appearance={displayedHero.appearance} /> : <Sparkle />}</span>
-            <span className="battle-platform" />
-            {displayedHero && <div className="battle-actor-caption"><strong>{displayedHero.name}</strong><small>{displayedHero.characterClass} · {displayedHero.hp}/{displayedHero.maxHp} HP</small>{monsterAttack?.targetId === displayedHero.id ? <small>Hit by the monster!</small> : battleEffect && effectActor?.id === displayedHero.id ? <small>Attacking!</small> : activeHero && battle.actedCharacterIds.includes(activeHero.id) && <small>Turn complete</small>}</div>}
-          </div>
-          <div className="battle-vs" aria-hidden="true">VS</div>
-          <div className={`battle-enemy ${monsterAttack ? "battle-enemy-attacking" : ""}`}>
-            <span className="battle-enemy-sprite" aria-hidden="true">{monster && <MonsterArt monster={monster} />}</span>
-            <span className="battle-platform monster-platform" />
-            <div className="battle-actor-caption"><strong>{battle.enemy}</strong><small>{monster?.boss ? "Dungeon boss" : "Dungeon monster"}</small></div>
-          </div>
-        </div>
-      </section>
-      <section className="battle-party-strip" aria-label="Party status">
-        {group.characters.map((hero) => {
-          const acted = battle.actedCharacterIds.includes(hero.id);
-          const current = activeHero?.id === hero.id;
-          return <div className={`battle-party-hero ${current ? "current" : ""} ${monsterAttack?.targetId === hero.id ? "attacked" : ""} ${hero.hp <= 0 ? "fallen" : acted ? "acted" : ""}`} key={hero.id}>
-            <PixelSprite characterClass={hero.characterClass} color={hero.spriteColor} trimColor={hero.trimColor} colors={hero.partColors} appearance={hero.appearance} />
-            <span><strong>{hero.name}</strong><small>{hero.hp <= 0 ? "Fallen" : `${hero.hp}/${hero.maxHp} HP`}</small></span>
-            {current && <b>YOUR TURN</b>}
-          </div>;
-        })}
-      </section>
-      <section className="battle-initiative" aria-label="Battle turn order">
-        <strong>INITIATIVE · FASTEST FIRST</strong>
-        <div>{battleTurnOrder(group, battle).map((actorId, index) => {
-          const monsterTurn = actorId === MONSTER_TURN_ID;
-          const hero = monsterTurn ? undefined : group.characters.find((character) => character.id === actorId);
-          const acted = battle.actedCharacterIds.includes(actorId);
-          return <span key={actorId} className={`${monsterTurn ? "monster" : ""} ${actorId === nextActorId ? "next" : ""} ${acted ? "acted" : ""}`}>
-            <b>{index + 1}</b>{monsterTurn ? `${battle.enemy} · SPD ${battle.speed}` : `${hero?.name || "Hero"} · SPD ${hero?.speed ?? 0}`}
-          </span>;
-        })}</div>
-      </section>
-      <InventoryPanel inventory={group.stats.inventory} onSelect={onOpenInventory} compact disabled={sequenceBusy} />
-      <section className="battle-command-panel">
-        <div className="battle-command-title"><span className="eyebrow">Battle commands</span><strong>{sequenceBusy ? "The monster is preparing to strike…" : activeHero ? `${activeHero.name}, choose an action` : "Waiting for the next turn…"}</strong></div>
-        {activeHero ? <div className="battle-command-grid">
-          <button disabled={sequenceBusy} className="battle-command-primary" onClick={() => act("attack")}><Swords /><span><strong>Attack</strong><small>Strike the monster</small></span></button>
+    <section className="rpg-field" aria-label={`${group.name} fighting ${battle.enemy}`}>
+      <div className="rpg-turn-order" aria-label="Battle turn order">{battleTurnOrder(group, battle).map((actorId, index) => {
+        const monsterTurn = actorId === MONSTER_TURN_ID;
+        const hero = monsterTurn ? undefined : group.characters.find((character) => character.id === actorId);
+        return <span key={actorId} className={`${monsterTurn ? "monster" : ""} ${actorId === nextActorId ? "next" : ""} ${battle.actedCharacterIds.includes(actorId) ? "acted" : ""}`}><b>{index + 1}</b>{monsterTurn ? battle.enemy : hero?.name || "Hero"}</span>;
+      })}</div>
+      <div className="rpg-monster-status">
+        <div><strong>{battle.enemy}</strong><span>{battle.hp} / {battle.maxHp} HP</span></div>
+        <div className="health-track enemy"><i style={{ width: `${Math.max(0, battle.hp / battle.maxHp * 100)}%` }} /></div>
+        <small>Damage {battle.damageMin}–{battle.damageMax} · Speed {battle.speed}{(battle.targetCount ?? 1) > 1 ? ` · Hits ${battle.targetCount} heroes` : ""}</small>
+      </div>
+      <DiceRolls game={game} groupId={group.id} />
+      {battleEffect && <div key={battleEffect.id} className={`battle-combat-effect effect-${battleEffect.kind} ${battleEffect.healed !== undefined ? "effect-heal" : battleEffect.hit ? "effect-hit" : "effect-miss"}`} aria-live="polite">
+        <span className="combat-effect-actor">{battleEffect.actorName}</span>
+        <span className="combat-effect-projectile" aria-hidden="true">{battleEffect.healed !== undefined ? <Heart /> : battleEffect.kind === "arrow-volley" ? <><Bow /><Bow /></> : battleEffect.kind === "magic-blast" ? <Sparkle /> : battleEffect.kind === "bomb-blast" ? <Bomb /> : <Swords />}</span>
+        <strong>{battleEffect.healed !== undefined ? `+${battleEffect.healed} HP` : battleEffect.hit ? `-${battleEffect.damage} HP` : "MISS"}</strong>
+      </div>}
+      {monsterAttack && (monsterAttack.hits.length > 1
+        ? <div key={monsterAttack.id} className="battle-monster-attack multi" aria-live="assertive"><strong>{battle.enemy} strikes {monsterAttack.hits.length} heroes!</strong>{monsterAttack.hits.map((hit) => <span key={hit.targetId} className={hit.dodged ? "dodged-hit" : ""}>{hit.targetName} · {hit.dodged ? "dodged!" : `−${hit.damage} HP`}</span>)}</div>
+        : monsterAttack.hits.map((hit) => <div key={monsterAttack.id} className={`battle-monster-attack ${hit.dodged ? "dodged" : ""}`} aria-live="assertive"><strong>{hit.dodged ? `${hit.targetName} dodged!` : `${battle.enemy} attacks!`}</strong><span>{hit.dodged ? `${battle.enemy} missed` : `${hit.targetName} · −${hit.damage} HP`}</span><small>Dodge roll {hit.dodgeRoll} · needed {hit.dodgeChance} or lower</small></div>))}
+      <div className={`rpg-enemy ${monsterAttack ? "battle-enemy-attacking" : ""}`}>
+        <span className="battle-enemy-sprite" aria-hidden="true">{monster && <MonsterArt monster={monster} />}</span>
+      </div>
+      <div className="rpg-party">{group.characters.map((hero) => {
+        const attacking = battleEffect?.actorId === hero.id;
+        const monsterHit = monsterAttack?.hits.find((hit) => hit.targetId === hero.id);
+        return <div key={hero.id} className={`rpg-hero ${activeHero?.id === hero.id ? "current" : ""} ${hero.hp <= 0 ? "fallen" : ""}`}>
+          <span className={`battle-actor-sprite ${attacking && battleEffect ? `battle-actor-attacking attack-${battleEffect.kind}` : ""} ${monsterHit ? (monsterHit.dodged ? "battle-hero-dodge" : "battle-hero-hit") : ""}`}><PixelSprite characterClass={hero.characterClass} color={hero.spriteColor} trimColor={hero.trimColor} colors={hero.partColors} appearance={hero.appearance} /></span>
+        </div>;
+      })}</div>
+    </section>
+    <section className="rpg-console">
+      <div className="rpg-window rpg-commands">
+        <div className="rpg-window-title">{showItems ? <><strong>Items</strong><button type="button" className="text-button" onClick={() => setShowItems(false)}><ChevronLeft /> Back</button></> : choosingHealTarget && activeHero ? <><strong>Heal who?</strong><button type="button" className="text-button" onClick={() => setChoosingHealTarget(false)}><ChevronLeft /> Back</button></> : <strong>{sequenceBusy ? "The monster is preparing to strike…" : activeHero ? `${activeHero.name}: choose an action` : "Waiting for the next turn…"}</strong>}</div>
+        {showItems ? <InventoryPanel inventory={group.stats.inventory} onSelect={selectItem} compact disabled={sequenceBusy} /> : choosingHealTarget && activeHero ? <div className="rpg-command-grid">
+          {livingHeroes.map((hero) => <button key={hero.id} disabled={sequenceBusy || hero.hp >= hero.maxHp} onClick={() => healAlly(hero.id)}><Heart /><span><strong>{hero.name}</strong><small>{hero.hp}/{hero.maxHp} HP · {hero.hp >= hero.maxHp ? "Full health" : `+${Math.min(5, hero.maxHp - hero.hp)} HP`}</small></span></button>)}
+        </div> : activeHero ? <div className="rpg-command-grid">
+          <button disabled={sequenceBusy} className="rpg-command-main" onClick={() => act("attack")}><Swords /><span><strong>Attack</strong><small>Strike the monster</small></span></button>
           {activeHero.characterClass === "Warrior" && <button disabled={sequenceBusy} onClick={() => act("guard")}><Shield /><span><strong>Guard</strong><small>Reduce the next hit</small></span></button>}
-          {activeHero.characterClass === "Thief" && <button disabled={sequenceBusy} onClick={() => act("steal")}><Coins /><span><strong>Mug</strong><small>Deal damage and steal 8 gold</small></span></button>}
-          {activeHero.characterClass === "Archer" && <button disabled={sequenceBusy} onClick={() => act("double")}><span className="battle-command-emoji">🏹</span><span><strong>Dual shot</strong><small>Fire two arrows</small></span></button>}
-          {activeHero.characterClass === "Mage" && <button disabled={sequenceBusy} onClick={() => act("heal")}><span className="battle-command-emoji">✨</span><span><strong>Heal</strong><small>Restore an ally&apos;s HP</small></span></button>}
-          <button disabled={sequenceBusy} className="battle-command-run" onClick={() => act("run")}><DoorOpen /><span><strong>Run</strong><small>Try to escape</small></span></button>
-        </div> : <div className="battle-no-turn">
-          <p className="battle-waiting">{nextActorId === undefined ? "Resuming the next round…" : "Waiting for the monster's turn…"}</p>
+          {activeHero.characterClass === "Thief" && <button disabled={sequenceBusy} onClick={() => act("steal")}><Coins /><span><strong>Mug</strong><small>Deal damage, steal 8 gold</small></span></button>}
+          {activeHero.characterClass === "Archer" && <button disabled={sequenceBusy} onClick={() => act("double")}><Bow /><span><strong>Dual shot</strong><small>Fire two arrows</small></span></button>}
+          {activeHero.characterClass === "Mage" && <button disabled={sequenceBusy || !someoneInjured} onClick={() => setChoosingHealTarget(true)}><Heart /><span><strong>Heal</strong><small>{someoneInjured ? "Choose an ally: up to +5 HP" : "Nobody is injured"}</small></span></button>}
+          <button disabled={sequenceBusy} onClick={() => setShowItems(true)}><Package /><span><strong>Items</strong><small>{group.stats.inventory.length} carried</small></span></button>
+          <button disabled={sequenceBusy} className="rpg-command-run" onClick={() => act("run")}><DoorOpen /><span><strong>Run</strong><small>{RUN_ESCAPE_CHANCE}% chance to escape</small></span></button>
+        </div> : <div className="rpg-no-turn">
+          <p>{nextActorId === undefined ? "Resuming the next round…" : "Waiting for the monster's turn…"}</p>
+          <button type="button" className="text-button" disabled={sequenceBusy} onClick={() => setShowItems(true)}><Package /> Items</button>
           {error && (nextActorId === MONSTER_TURN_ID || nextActorId === undefined) && <button className="text-button" disabled={sequenceBusy} onClick={onRetryMonsterTurn}>Retry battle turn</button>}
         </div>}
-        <p className="battle-turn-hint">Turns follow Speed order, fastest first. The monster acts when its initiative comes up.</p>
-      </section>
-      <DiceRolls game={game} groupId={group.id} />
-      {error && <p className="error battle-screen-error">{error}</p>}
-    </div>
+        {error && <p className="error battle-screen-error">{error}</p>}
+      </div>
+      <div className="rpg-window rpg-party-status" aria-label="Party status">{group.characters.map((hero) => {
+        const current = activeHero?.id === hero.id;
+        return <div key={hero.id} className={`rpg-status-row ${current ? "current" : ""} ${monsterAttack?.hits.some((hit) => hit.targetId === hero.id && !hit.dodged) ? "attacked" : ""} ${hero.hp <= 0 ? "fallen" : battle.actedCharacterIds.includes(hero.id) ? "acted" : ""}`}>
+          <strong>{current && <ChevronRight />}{hero.name}</strong>
+          <div className="health-track"><i style={{ width: `${Math.max(0, hero.hp / hero.maxHp * 100)}%` }} /></div>
+          <span>{hero.hp <= 0 ? "Fallen" : `${hero.hp}/${hero.maxHp}`}</span>
+        </div>;
+      })}</div>
+    </section>
   </main>;
 }
 
@@ -1242,8 +1244,8 @@ function DiceRolls({ game, groupId }: { game: GameState; groupId?: string }) {
   if (!rolls.length) return null;
   return <section className="dice-rolls" aria-label="Recent dice rolls">{rolls.map((roll) => <article key={roll.id} className={`dice-result ${roll.success ? "success" : "failure"}`}>
     <span className="die-face">{roll.dice.length > 1 ? roll.dice.join(" · ") : roll.dice[0]}<small>d{roll.sides}</small></span>
-    <span className="dice-result-text"><strong>{roll.label} · {roll.actor}</strong><small>{roll.label === "Attack damage bonus" ? `d3 ${roll.dice[0]} gives +${roll.total} damage` : roll.sides === 100 ? `${roll.dice.join(" · ")} rolled · hit on ${roll.target} or lower` : `${roll.dice.join(" + ")}${roll.modifier ? ` + ${roll.modifier}` : ""} = ${roll.total} · needed ${roll.target}`}</small></span>
-    <b>{roll.label === "Attack damage bonus" ? `+${roll.total}` : roll.sides === 100 && roll.dice.length > 1 ? `${roll.total} HIT${roll.total === 1 ? "" : "S"}` : roll.success ? "SUCCESS" : "MISS"}</b>
+    <span className="dice-result-text"><strong>{roll.label} · {roll.actor}</strong><small>{roll.label === "Attack damage bonus" ? `d3 ${roll.dice[0]} gives +${roll.total} damage` : roll.label === "Escape" ? `${roll.dice[0]} rolled · escape on ${roll.target} or lower` : roll.sides === 100 ? `${roll.dice.join(" · ")} rolled · hit on ${roll.target} or lower` : `${roll.dice.join(" + ")}${roll.modifier ? ` + ${roll.modifier}` : ""} = ${roll.total} · needed ${roll.target}`}</small></span>
+    <b>{roll.label === "Escape" ? (roll.success ? "ESCAPED" : "FAILED") : roll.label === "Attack damage bonus" ? `+${roll.total}` : roll.sides === 100 && roll.dice.length > 1 ? `${roll.total} HIT${roll.total === 1 ? "" : "S"}` : roll.success ? "SUCCESS" : "MISS"}</b>
   </article>)}</section>;
 }
 
@@ -1341,11 +1343,19 @@ function BattleCard({ game, group, onAction, host = false }: { game: GameState; 
 
 type StatRoll = { dice: number[]; value: number };
 function rollAbility(): StatRoll {
-  const dice = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1).sort((a, b) => a - b);
-  return { dice, value: dice[1] + dice[2] + dice[3] };
+  // 2d6 + 3 gives 5 to 15, with most heroes near 10.
+  const dice = Array.from({ length: 2 }, () => Math.floor(Math.random() * 6) + 1);
+  return { dice, value: dice[0] + dice[1] + 3 };
 }
 type StatKey = "damage" | "dexterity" | "speed";
-const STAT_LABELS: Record<StatKey, string> = { damage: "Damage", dexterity: "Dexterity", speed: "Speed" };
+const STAT_LABELS: Record<StatKey, string> = { damage: "Damage", dexterity: "Accuracy", speed: "Speed" };
+function StatGuide() {
+  return <div className="stat-guide">
+    <p><Swords /><strong>Damage</strong> How hard your attacks hit.</p>
+    <p><Sparkle /><strong>Accuracy</strong> Your chance to land an attack.</p>
+    <p><Footprints /><strong>Speed</strong> Dodge traps and monster attacks, and act first.</p>
+  </div>;
+}
 type HeroDraft = { name: string; characterClass: CharacterClass; rolls: StatRoll[] | null; assignments: Record<StatKey, number>; spriteColor: string; trimColor: string; partColors: PartColors; appearance: BodyParts; designId: string; designStats: CharacterDesignStats | null };
 function createHeroDraft(index: number): HeroDraft {
   const spriteColor = SPRITE_COLORS[(index - 1) % SPRITE_COLORS.length];
@@ -1387,8 +1397,8 @@ function HowToPlayDialog({ onClose }: { onClose: () => void }) {
       <div className="how-to-play-grid">
         <article><span aria-hidden="true"><Map /></span><div><strong>Explore</strong><p>Tap a neighboring tile to move. Rooms reveal their contents when you enter. Every party explores separately, but discoveries are shared.</p></div></article>
         <article><span aria-hidden="true"><KeyRound /></span><div><strong>Find the key</strong><p>Search each floor for its key, then find the stairs to continue. Clear all three floors to finish the expedition.</p></div></article>
-        <article><span aria-hidden="true"><Swords /></span><div><strong>Battle together</strong><p>Each living hero takes one action per round before the monster attacks. Use your class abilities, or run if you need to escape.</p></div></article>
-        <article><span aria-hidden="true"><TriangleAlert /></span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of 15 or more. Chests may hold gold, healing potions, a Phoenix Feather, or bombs.</p></div></article>
+        <article><span aria-hidden="true"><Swords /></span><div><strong>Battle together</strong><p>Each living hero takes one action per round before the monster attacks. Fast heroes may dodge monster attacks. Running only has a {RUN_ESCAPE_CHANCE}% chance of working, and the monster will still be there if you come back.</p></div></article>
+        <article><span aria-hidden="true"><TriangleAlert /></span><div><strong>Watch your step</strong><p>Traps call for a d20 + Speed roll of {TRAP_DODGE_TARGET} or more, so fast heroes dodge more often. Chests may hold gold, healing potions, a Phoenix Feather, or bombs.</p></div></article>
       </div>
       <button className="primary big" onClick={onClose}>Start exploring <ChevronRight /></button>
     </section>
@@ -1430,7 +1440,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
   }, [battleEffect]);
   useEffect(() => {
     if (!monsterAttack) return;
-    const timer = window.setTimeout(() => setMonsterAttack(null), 1300);
+    const timer = window.setTimeout(() => setMonsterAttack(null), monsterAttack.hits.length > 1 ? 2100 : 1300);
     return () => window.clearTimeout(timer);
   }, [monsterAttack]);
   useEffect(() => () => {
@@ -1449,7 +1459,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
     battleSequenceTimer.current = setTimeout(() => {
       setBattleSequenceBusy(false);
       battleSequenceTimer.current = null;
-    }, delay + 1350);
+    }, delay + (attack.hits.length > 1 ? 2150 : 1350));
   }
   function updateDraft(changes: Partial<HeroDraft>) {
     setRoster((current) => current.map((hero, index) => index === selectedHero ? { ...hero, ...changes } : hero));
@@ -1572,8 +1582,9 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
       <div className="party-class-choice">
         <p className="form-label">Choose {activeDraft.name || "this hero"}’s class</p><div className="class-picker">{CLASSES.map((item) => <button type="button" key={item.name} aria-pressed={activeDraft.characterClass === item.name} onClick={() => updateDraft({ characterClass: item.name, appearance: defaultBodyParts("character", item.name), partColors: defaultPartColors(activeDraft.spriteColor), designId: "", designStats: null, rolls: null })} className={activeDraft.characterClass === item.name ? "selected" : ""}><PixelSprite characterClass={item.name} color={activeDraft.spriteColor} trimColor={activeDraft.trimColor} colors={defaultPartColors(activeDraft.spriteColor)} appearance={defaultBodyParts("character", item.name)} /><strong>{item.name} · {item.hp} HP</strong><small>{item.description}</small></button>)}</div>
       </div>
-      <section className="creator-stats"><div className="creator-heading"><div><p className="form-label">{activeDraft.designStats ? `${activeDraft.name || "Hero"}’s saved stats` : `Roll ${activeDraft.name || "this hero"}’s stats`}</p><small>{activeDraft.designStats ? "These stats are part of the selected character design." : "Roll 4d6, drop the lowest die, then assign each result."}</small></div>{!activeDraft.designStats && <button type="button" className="roll-button" onClick={rollStats}><Dice /> {activeDraft.rolls ? "Reroll" : "Roll stats"}</button>}</div>
-        {activeDraft.designStats ? <div className="design-stat-summary party-design-stats"><span>Damage {activeDraft.designStats.damage}</span><span>Dexterity {activeDraft.designStats.dexterity}</span><span>Speed {activeDraft.designStats.speed}</span></div> : activeDraft.rolls ? <><div className="stat-roll-cards">{activeDraft.rolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>4D6 · DROP LOWEST</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex} className={dieIndex === 0 ? "drop-die" : ""}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={activeDraft.assignments[stat]} onChange={(event) => assign(stat, Number(event.target.value))}>{activeDraft.rolls!.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></> : <p className="muted roll-prompt">Tap “Roll stats” to get this hero’s three values.</p>}
+      <section className="creator-stats"><div className="creator-heading"><div><p className="form-label">{activeDraft.designStats ? `${activeDraft.name || "Hero"}’s saved stats` : `Roll ${activeDraft.name || "this hero"}’s stats`}</p><small>{activeDraft.designStats ? "These stats are part of the selected character design." : "Roll 2d6 + 3 for each stat (5 to 15), then choose which roll goes where."}</small></div>{!activeDraft.designStats && <button type="button" className="roll-button" onClick={rollStats}><Dice /> {activeDraft.rolls ? "Reroll" : "Roll stats"}</button>}</div>
+        <StatGuide />
+        {activeDraft.designStats ? <div className="design-stat-summary party-design-stats"><span>Damage {activeDraft.designStats.damage}</span><span>Accuracy {activeDraft.designStats.dexterity}</span><span>Speed {activeDraft.designStats.speed}</span></div> : activeDraft.rolls ? <><div className="stat-roll-cards">{activeDraft.rolls.map((roll, index) => <div className="stat-roll-card" key={`${index}-${roll.value}`}><small>2D6 + 3</small><span className="stat-dice">{roll.dice.map((die, dieIndex) => <i key={dieIndex}>{die}</i>)}</span><strong>{roll.value}</strong></div>)}</div><div className="stat-assignments">{(["damage", "dexterity", "speed"] as StatKey[]).map((stat) => <label key={stat}>{STAT_LABELS[stat]}<select value={activeDraft.assignments[stat]} onChange={(event) => assign(stat, Number(event.target.value))}>{activeDraft.rolls!.map((roll, index) => <option key={`${index}-${roll.value}`} value={index}>Roll {index + 1} · {roll.value}</option>)}</select></label>)}</div></> : <p className="muted roll-prompt">Tap “Roll stats” to get this hero’s three values.</p>}
       </section>
       <section className="sprite-picker"><div><p className="form-label">Choose this hero’s primary color</p><small>Distinct colors make each hero easy to identify.</small></div><div className="sprite-options">{SPRITE_COLORS.map((color) => <button type="button" key={color} aria-label={`Choose sprite color ${color}`} aria-pressed={activeDraft.spriteColor === color} className={activeDraft.spriteColor === color ? "selected" : ""} onClick={() => updateDraft({ spriteColor: color, partColors: defaultPartColors(color) })}><PixelSprite characterClass={activeDraft.characterClass} color={color} trimColor={activeDraft.trimColor} colors={defaultPartColors(color)} appearance={activeDraft.appearance} /></button>)}</div></section>
       <button className="primary big" disabled={joining || !name.trim() || roster.some((hero) => !hero.name.trim() || (!hero.rolls && !hero.designStats)) || new Set(roster.map((hero) => hero.name.trim().toLowerCase())).size !== roster.length}>{joining ? "Joining…" : "Join party"}<ChevronRight /></button></form>{error && <p className="error">{error}</p>}
@@ -1606,7 +1617,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
     <header className="group-topbar"><Brand /><span className="floor-chip">{group.gameOver ? "Game over" : game.phase === "lobby" ? "Party lobby" : escaped ? "Escaped!" : `Floor ${group.stats.floor} of 3`}</span><span className="group-level">{group.characters.length} HEROES</span></header>
     <div className="group-content">    <div className="group-welcome"><span className="class-icon large"><PixelSprite characterClass={group.characterClass} color={group.stats.spriteColor} trimColor={group.characters[0]?.trimColor} colors={group.characters[0]?.partColors} appearance={group.characters[0]?.appearance} /></span><div><p className="eyebrow">{group.characters.map((hero) => hero.name).join(" · ")} · {group.name}</p><h1>{group.gameOver ? "Your expedition ends here." : game.phase === "lobby" ? "Your party is ready." : escaped ? "You made it out!" : game.phase === "complete" ? "Dungeon cleared!" : groupBattle ? "Stand your ground!" : "Into the unknown."}</h1></div></div>
       {foundFloor && <div className="key-found-banner"><KeyRound /> Floor {foundFloor.number} key found! The stairway is unlocked.</div>}
-      <div className="stat-strip"><span><Heart /> {group.stats.hp}/{group.stats.maxHp} HP</span><span><Swords /> {group.stats.damage} DMG</span><span><Sparkle /> {group.stats.dexterity} DEX</span><span><Footprints /> {group.stats.speed} SPD</span><span><Coins /> {group.stats.gold}</span><span><KeyRound /> {foundFloor ? `F${foundFloor.number} key found` : "Key missing"}</span></div>
+      <div className="stat-strip"><span><Heart /> {group.stats.hp}/{group.stats.maxHp} HP</span><span><Swords /> {group.stats.damage} DMG</span><span><Sparkle /> {group.stats.dexterity} ACC</span><span><Footprints /> {group.stats.speed} SPD</span><span><Coins /> {group.stats.gold}</span><span><KeyRound /> {foundFloor ? `F${foundFloor.number} key found` : "Key missing"}</span></div>
       {game.phase === "lobby" ? <div className="waiting-panel"><span>⌛</span><h2>Waiting for the host</h2><p>Keep this screen open. Your host will start the expedition when the groups are ready.</p></div> :
         group.gameOver ? <div className="game-over-panel"><span>☠</span><p className="eyebrow">Expedition over</p><h2>Your party has fallen</h2><p>Your group has no living heroes or Phoenix Feathers. The other groups can continue their expedition.</p><div className="fallen-roster">{group.characters.map((hero) => <span key={hero.id}>{hero.name} · {hero.hp}/{hero.maxHp} HP</span>)}</div></div> :
         escaped ? <div className="waiting-panel"><span><Trophy /></span><h2>Party escaped!</h2><p>Your party made it out with {group.stats.gold} gold. The other parties can keep exploring.</p></div> :

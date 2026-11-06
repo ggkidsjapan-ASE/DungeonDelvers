@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { CHARACTER_CLASSES, CREATOR_COLORS, DEFAULT_CHARACTER_STATS, DEFAULT_MONSTER_STATS, defaultPartColors, type CharacterClass, type CharacterDesignStats, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign, validBodyParts } from "../../creations";
+import { CHARACTER_CLASSES, CREATOR_COLORS, DEFAULT_CHARACTER_STATS, DEFAULT_MONSTER_STATS, clampCharacterStats, defaultPartColors, type CharacterClass, type CharacterDesignStats, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign, validBodyParts } from "../../creations";
 import { rejectInvalidDeleteKey } from "../../delete-key";
 import { BOSSES } from "../../bosses";
 
@@ -49,7 +49,7 @@ function validateDesign(value: unknown): DesignInput | string {
     if (typeof input.characterClass !== "string" || !CHARACTER_CLASSES.includes(input.characterClass as CharacterClass)) return "Choose a character class.";
     if (!validBodyParts(input.parts, kind, input.characterClass as CharacterClass)) return "Choose valid class-specific body parts for this design.";
     if (!isCharacterStats(input.stats)) return "Roll valid character stats before saving this design.";
-    return { kind, name, characterClass: input.characterClass as CharacterClass, color: input.color, trimColor: input.trimColor, colors: input.colors, parts: input.parts, stats: input.stats };
+    return { kind, name, characterClass: input.characterClass as CharacterClass, color: input.color, trimColor: input.trimColor, colors: input.colors, parts: input.parts, stats: clampCharacterStats(input.stats) };
   }
   if (!validBodyParts(input.parts, kind)) return "Choose valid body parts for this monster.";
   if (!isMonsterStats(input.stats)) return "Roll valid monster stats before saving this design.";
@@ -74,7 +74,7 @@ export async function GET() {
         colors: isPartColors(parsedColors, row.kind) ? parsedColors : defaultPartColors(row.color),
         parts: JSON.parse(row.parts) as SavedDesign["parts"],
         stats: row.kind === "character"
-          ? isCharacterStats(stats) ? stats : DEFAULT_CHARACTER_STATS[characterClass]
+          ? isCharacterStats(stats) ? clampCharacterStats(stats) : DEFAULT_CHARACTER_STATS[characterClass]
           : isMonsterStats(stats) ? stats : DEFAULT_MONSTER_STATS,
         ...(row.kind === "character" ? { characterClass } : {}),
       } as SavedDesign;

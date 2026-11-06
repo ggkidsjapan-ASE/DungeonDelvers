@@ -10,6 +10,19 @@ export type SavedDesign = CharacterDesign | MonsterDesign;
 export type DesignInput = Omit<CharacterDesign, "id"> | Omit<MonsterDesign, "id">;
 
 export const CREATOR_COLORS = ["#e85d4a", "#e6a23c", "#58a86b", "#4c9ad1", "#9d70d6", "#db75a3", "#a6c36f", "#d7d1c7", "#4a4954"] as const;
+export const CHARACTER_STAT_MIN = 5;
+export const CHARACTER_STAT_MAX = 15;
+export const TRAP_DODGE_TARGET = 20;
+export const RUN_ESCAPE_CHANCE = 10;
+/** Percent chance that a hero dodges a monster's attack outright. */
+export function dodgeChance(speed: number) { return speed * 3; }
+/** Keeps a stat in the fair range. Older characters rolled up to 18, so this applies when they are read or played. */
+export function clampCharacterStat(value: number) {
+  return Math.min(CHARACTER_STAT_MAX, Math.max(CHARACTER_STAT_MIN, value));
+}
+export function clampCharacterStats(stats: CharacterDesignStats): CharacterDesignStats {
+  return { ...stats, damage: clampCharacterStat(stats.damage), dexterity: clampCharacterStat(stats.dexterity), speed: clampCharacterStat(stats.speed) };
+}
 export const CHARACTER_CLASSES: CharacterClass[] = ["Warrior", "Thief", "Archer", "Mage"];
 export const DEFAULT_CHARACTER_STATS: Record<CharacterClass, CharacterDesignStats> = {
   Warrior: { damage: 12, dexterity: 10, speed: 8 },

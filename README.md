@@ -29,8 +29,8 @@ Give your group a name, then create one to four heroes:
 
 - Choose a class, set a hero name, and select a sprite color.
 - Choose a saved character design, make a new hero, or use **Choose a random hero**.
-- For a new hero, roll stats and assign the three results to Damage, Dexterity, and Speed. Each result is made by rolling four six-sided dice and dropping the lowest die. Reroll if you want, then assign each result to a different stat.
-- Saved character designs use their saved stats. Changing a selected hero's class clears the design and its stats, so roll new stats before joining.
+- For a new hero, roll stats and assign the three results to Damage, Accuracy, and Speed. Each result is 2d6 + 3, so every stat is between 5 and 15. Damage is how hard attacks hit, Accuracy is the chance to land an attack, and Speed dodges traps and monster attacks and decides who acts first. Reroll if you want, then assign each result to a different stat.
+- Saved character designs use their saved stats, capped to the 5–15 range. Changing a selected hero's class clears the design and its stats, so roll new stats before joining.
 - Each hero needs a unique name within the group.
 
 Every hero starts with full class-based HP, regardless of their rolled stats:
@@ -40,7 +40,7 @@ Every hero starts with full class-based HP, regardless of their rolled stats:
 | Warrior | 25 | **Guard** to reduce the next hit against the guarding hero. |
 | Thief | 15 | **Mug** a monster for 8 gold while dealing damage. |
 | Archer | 15 | **Dual shot** fires two independently checked arrows. |
-| Mage | 20 | **Heal** the most-injured living ally and damage the monster. |
+| Mage | 20 | **Heal** a living ally of your choice. |
 
 All parties begin with two Healing Potions and one Phoenix Feather. Hero stats affect battle and traps; a hero's class determines their starting HP and class ability.
 
@@ -62,7 +62,7 @@ All regular monsters come from the saved Monster Creator library; if the library
 
 ### Traps and treasure
 
-- Each living hero rolls separately when the group triggers a trap: **d20 + Speed**. A total of **15 or higher** dodges it; otherwise that hero takes **4 damage**. Each group triggers a given trap once.
+- Each living hero rolls separately when the group triggers a trap: **d20 + Speed**. A total of **20 or higher** dodges it; otherwise that hero takes **4 damage**. Each group triggers a given trap once.
 - A chest gives one random reward: **10–25 gold**, a Healing Potion, a Phoenix Feather, or a Bomb.
 
 ## Battles
@@ -71,20 +71,20 @@ Entering an undefeated monster's tile starts a battle for that group. The battle
 
 1. Turns are ordered by Speed, fastest first. Each living hero and the monster gets one turn per round; the monster may act before some heroes if its Speed is higher.
 2. On a hero's turn, choose **Attack**, the class ability, **Guard** (Warrior only), or **Run**. Heroes who are waiting for their initiative turn cannot act yet.
-3. Attacks use Dexterity to determine hit chance: **50% + 3% for each point of Dexterity above 10**, with a minimum of 35% and maximum of 90%. A successful basic attack deals 65% of the hero's Damage stat, rounded down, plus a random 0–2 damage.
-4. When the monster's turn arrives, it attacks a living hero. The target's Speed reduces incoming damage by `floor(Speed / 5)`; Guard reduces the next hit by a further 2 damage.
-5. Defeating a monster awards its bounty as group gold and XP to the hero who lands the final blow. A hero levels up at 20 XP per current level; each level adds 1 maximum HP, Damage, Dexterity, and Speed. Damage cannot exceed 20; Dexterity and Speed cannot exceed 18.
+3. Attacks use Accuracy to determine hit chance: **50% + 3% for each point of Accuracy above 10**, with a minimum of 35% and maximum of 90%. A successful basic attack deals 65% of the hero's Damage stat, rounded down, plus a random 0–2 damage.
+4. When the monster's turn arrives, it attacks a living hero (a boss also strikes up to two more). Each target has a **Speed × 3%** chance to dodge it and take no damage (15% at Speed 5, 30% at Speed 10, 45% at Speed 15). Guard reduces the next hit by 2 damage.
+5. Defeating a monster awards its bounty as group gold and XP to the hero who lands the final blow. A hero levels up at 20 XP per current level; each level adds 1 maximum HP, Damage, Accuracy, and Speed. Damage cannot exceed 20; Accuracy and Speed cannot exceed 18.
 
 Class abilities:
 
 - **Warrior — Guard:** brace to reduce the next incoming hit by 2 additional damage.
 - **Thief — Mug:** gain 8 gold and deal damage equal to half the Thief's Damage stat, rounded down (minimum 1).
 - **Archer — Dual shot:** fire two arrows; each arrow has its own hit check and deals 65% of the Archer's Damage stat, rounded down (minimum 1).
-- **Mage — Heal:** restore up to 5 HP to the living hero with the lowest health percentage and deal half the Mage's Damage stat to the monster, rounded down (minimum 1).
+- **Mage — Heal:** choose a living, injured ally and restore up to 5 HP. It deals no damage.
 
-**Running** makes a d20 roll. A result of **11 or higher** escapes to a neighboring tile; a lower result fails and the battle continues.
+**Running** has a **10%** chance to work (d100, 10 or lower) and returns the party to the tile they came from; otherwise the hero's turn is spent and the battle continues. The monster stays on its tile, so stepping back onto it starts a new battle against a monster at full health.
 
-Monster HP scales with group size. Regular monsters have 15 HP against a one-hero group, 20 against two heroes, 30 against three, and 40 against four. Boss HP is double those values: 30, 40, 60, or 80. Monsters use their own Speed and damage range.
+Regular monsters scale with group size: 12 HP and 0.75× damage against one hero, 20 HP and 1× against two, 35 HP and 1.25× against three, and 50 HP and 1.75× against four. Their hits never exceed 10 damage, so they cannot take out a healthy hero in one blow. Bosses do not scale: they always have 90 HP and their listed damage, and each attack strikes up to three heroes, with each hero rolling their own damage and dodge. The battle screen shows the actual damage; saved monster designs and the Bestiary keep their original values. Monsters use their own Speed.
 
 ## Items, defeat, and rewards
 
@@ -115,7 +115,7 @@ Create a connected map on a 13 × 13 grid using the path, start, monster, chest,
 
 ### Character Creator
 
-Create class-specific characters for students to select when forming a party. Choose a class, name, head, torso, arms, legs, and colors, then roll and assign Damage, Dexterity, and Speed. Character body-part choices differ by class; for example, Warriors can wear plate armor and Archers can wear a feathered Robin Hood–style hat. Each part can be colored independently. Saved designs retain their appearance and rolled stats until edited.
+Create class-specific characters for students to select when forming a party. Choose a class, name, head, torso, arms, legs, and colors, then roll and assign Damage, Accuracy, and Speed. Character body-part choices differ by class; for example, Warriors can wear plate armor and Archers can wear a feathered Robin Hood–style hat. Each part can be colored independently. Saved designs retain their appearance and rolled stats until edited.
 
 ### Monster Creator
 
