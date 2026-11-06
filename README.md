@@ -1,6 +1,6 @@
 # Dungeon Delvers
 
-Dungeon Delvers is a cooperative classroom dungeon adventure. A host opens an expedition and displays the shared dungeon board. Up to four student groups join from their own devices, build parties of up to four heroes, and explore the same three-floor dungeon at their own pace.
+Dungeon Delvers is a cooperative classroom dungeon adventure. A host opens an expedition and displays the shared dungeon board. Up to eight student groups join from their own devices, build parties of up to four heroes, and explore the same three-floor dungeon at their own pace.
 
 ## Play online
 
@@ -21,7 +21,7 @@ Discoveries are shared on the host's map, while each group has its own location,
 5. Select **Enter the dungeon** when everyone is ready.
 6. Keep the host screen open to follow the shared map, party health, active battles, dice rolls, and expedition log.
 
-There can be up to four groups in one expedition. A group can join only while the host is in the lobby. **Return to lobby** resets the expedition's floor progress, group gold, hero levels, and inventory, then lets the host start again with the same room and groups.
+There can be up to eight groups of up to four heroes in one expedition, for a maximum of 32 heroes. A group can join only while the host is in the lobby. **Return to lobby** resets the expedition's floor progress, group gold, hero levels, and inventory, then lets the host start again with the same room and groups.
 
 ## Joining and building a party
 

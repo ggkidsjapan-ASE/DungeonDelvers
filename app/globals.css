@@ -957,6 +957,21 @@ html, body { font-family: "Courier New", ui-monospace, monospace; }
   .party-card { max-height: 100%; padding: 20px; }
   .group-list { max-height: 34vh; margin: 12px 0; }
   .group-list .group-summary { padding: 8px; }
+  .party-card .group-list { max-height: 46vh; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+  .party-card .group-summary small { display: none; }
+  .board-sidebar:has(.many-groups) { min-height: 0; gap: 10px; overflow: hidden; }
+  .board-sidebar:has(.many-groups) > div:first-child { flex: 1 1 0; min-height: 90px; display: flex; flex-direction: column; }
+  .board-sidebar:has(.many-groups) > .host-battles { flex: 0 1 auto; min-height: 0; max-height: 22svh; overflow-y: auto; }
+  .board-sidebar:has(.many-groups) > .feed-panel { flex: 0 1 auto; min-height: 0; max-height: 16svh; overflow-y: auto; }
+  .board-sidebar:has(.many-groups) > .danger { flex: none; }
+  .board-sidebar .group-list.compact.many-groups { flex: 1 1 auto; min-height: 0; max-height: none; align-content: start; gap: 4px; margin-top: 6px; }
+  .board-sidebar .group-list.many-groups .group-summary { align-items: center; gap: 7px; padding: 3px 6px; }
+  .group-list.many-groups .class-icon { width: 28px; height: 28px; }
+  .group-list.many-groups .group-hero-hp, .group-list.many-groups .group-hero-count { display: none; }
+  .group-list.many-groups .group-meta { grid-template-columns: auto minmax(0, 1fr); gap: 1px 6px; }
+  .group-list.many-groups .group-meta > span, .group-list.many-groups .group-meta small { overflow: hidden; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+  .group-list.many-groups .group-meta strong, .group-list.many-groups .health-track { grid-column: 1 / -1; }
+  .group-list.many-groups .health-track { order: 1; height: 4px; }
   .empty-state { padding: 24px 12px; }
   .host-actions { padding-top: 10px; }
   .host-actions p { margin: 8px 0; }

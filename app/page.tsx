@@ -35,7 +35,7 @@ const CLASSES: { name: CharacterClass; icon: string; description: string; hp: nu
 const SPRITE_COLORS = CREATOR_COLORS;
 const MAP_SIZE = 13;
 const MONSTER_TURN_ID = "__monster__";
-const MAX_GROUPS = 4;
+const MAX_GROUPS = 8;
 const ITEM_LABELS: Record<string, string> = { potion: "Healing Potion", "phoenix-feather": "Phoenix Feather", bomb: "Bomb" };
 
 function battleTurnOrder(group: Group, battle: Battle) {
@@ -1038,10 +1038,10 @@ function ExpeditionBoard({ game, onAction, error, busy }: { game: GameState; onA
   return <section className={`host-screen ${game.phase === "lobby" ? "host-lobby-screen" : "host-board-screen"}`}>
     <header className="topbar"><Brand /><span className="floor-chip">{game.phase === "lobby" ? "Party lobby" : game.phase === "complete" ? "Quest complete" : "Dungeon control"}</span><span className="room-chip">ROOM <b>{game.code}</b></span></header>
     {game.phase === "lobby" ? <div className="host-lobby">
-      <article className="join-card"><p className="eyebrow">Ready your groups</p><h1>Join the expedition</h1><p className="muted">Scan on up to four devices or tabs. Each group can create up to four heroes.</p><div className="qr-box">{qr ? <Image src={qr} alt="QR code to join this expedition" width={260} height={260} unoptimized /> : <span>Making code…</span>}</div><p className="room-code">ROOM CODE <strong>{game.code}</strong></p>{link}</article>
+      <article className="join-card"><p className="eyebrow">Ready your groups</p><h1>Join the expedition</h1><p className="muted">Scan on up to eight devices or tabs. Each group can create up to four heroes.</p><div className="qr-box">{qr ? <Image src={qr} alt="QR code to join this expedition" width={260} height={260} unoptimized /> : <span>Making code…</span>}</div><p className="room-code">ROOM CODE <strong>{game.code}</strong></p>{link}</article>
       <article className="party-card"><div className="section-heading"><div><p className="eyebrow">Adventuring groups</p><h2>{game.groups.length}/{MAX_GROUPS} joined</h2></div><Users /></div>
         {game.groups.length ? <div className="group-list">{game.groups.map((group) => <GroupSummary key={group.id} group={group} />)}</div> : <div className="empty-state"><span>✧</span><p>Your party will appear here as groups join.</p></div>}
-        <div className="host-actions"><p>Share the code with up to four groups. Each group can have up to four heroes.</p><button className="primary" onClick={() => onAction("start")} disabled={busy || !game.groups.length}>Enter the dungeon<ChevronRight /></button></div>
+        <div className="host-actions"><p>Share the code with up to eight groups. Each group can have up to four heroes.</p><button className="primary" onClick={() => onAction("start")} disabled={busy || !game.groups.length}>Enter the dungeon<ChevronRight /></button></div>
       </article>
     </div> : <div className="central-layout">
       <section className="central-main">
@@ -1060,7 +1060,7 @@ function ExpeditionBoard({ game, onAction, error, busy }: { game: GameState; onA
         <InfoPanel game={game} tab={tab} />
       </section>
       <aside className="board-sidebar">
-        <div><p className="eyebrow">Party status · {game.groups.length}</p><div className="group-list compact">{game.groups.map((group) => <GroupSummary key={group.id} group={group} />)}</div></div>
+        <div><p className="eyebrow">Party status · {game.groups.length}</p><div className={`group-list compact${game.groups.length > 4 ? " many-groups" : ""}`}>{game.groups.map((group) => <GroupSummary key={group.id} group={group} />)}</div></div>
         <div className="host-battles"><p className="eyebrow">Active encounters · {Object.keys(game.battles).length}</p>{game.groups.filter((group) => game.battles[group.id]).map((group) => <BattleCard key={group.id} game={game} group={group} onAction={onAction} host />)}{!Object.keys(game.battles).length && <p className="muted">No parties are in battle.</p>}</div>
         <DiceRolls game={game} />
         <div className="feed-panel"><p className="eyebrow">Expedition log</p>{game.feed.map((line, index) => <p key={`${index}-${line}`}>{line}</p>)}</div>
@@ -1400,7 +1400,7 @@ function FirstPersonExplore({ game, group, floor, onMove, onFacingChange, error 
 
 function GroupSummary({ group }: { group: Group }) {
   const escaped = group.stats.floor > 3;
-  return <article className="group-summary"><span className="class-icon"><PixelSprite characterClass={group.characterClass} color={group.stats.spriteColor} trimColor={group.characters[0]?.trimColor} colors={group.characters[0]?.partColors} appearance={group.characters[0]?.appearance} /></span><div className="group-meta"><strong>{group.name}</strong><span>{group.characters.length} heroes · {group.gameOver ? "Game over" : escaped ? "Escaped" : `Floor ${group.stats.floor}`}</span><div className="health-track"><i style={{ width: `${Math.max(0, group.stats.hp / group.stats.maxHp * 100)}%` }} /></div><small>{group.stats.hp}/{group.stats.maxHp} HP · {group.stats.gold} gold · {group.characters.map((hero) => `${hero.name} ${hero.hp}/${hero.maxHp}`).join(" · ")}</small></div></article>;
+  return <article className="group-summary"><span className="class-icon"><PixelSprite characterClass={group.characterClass} color={group.stats.spriteColor} trimColor={group.characters[0]?.trimColor} colors={group.characters[0]?.partColors} appearance={group.characters[0]?.appearance} /></span><div className="group-meta"><strong>{group.name}</strong><span><span className="group-hero-count">{group.characters.length} heroes · </span>{group.gameOver ? "Game over" : escaped ? "Escaped" : `Floor ${group.stats.floor}`}</span><div className="health-track"><i style={{ width: `${Math.max(0, group.stats.hp / group.stats.maxHp * 100)}%` }} /></div><small>{group.stats.hp}/{group.stats.maxHp} HP · {group.stats.gold} gold<span className="group-hero-hp"> · {group.characters.map((hero) => `${hero.name} ${hero.hp}/${hero.maxHp}`).join(" · ")}</span></small></div></article>;
 }
 
 function InfoPanel({ game, tab }: { game: GameState; tab: Tab }) {

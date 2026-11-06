@@ -18,10 +18,10 @@ type ChestReward = { id: string; kind: "gold" | "item"; amount?: number; item?: 
 type BattleEffect = { id: string; actorId: string; actorName: string; characterClass: CharacterClass; kind: "sword-slash" | "arrow-volley" | "dagger-strike" | "magic-blast" | "bomb-blast"; hit: boolean; damage: number };
 type MonsterAttack = { id: string; targetId: string; targetName: string; damage: number; rolledDamage: number };
 type BattleEnd = { id: string; result: "victory" | "defeat" | "escaped"; enemy: string; gold?: number };
-type RoomRow = { code: string; teacher_token: string; phase: string; game_state: string };
+type RoomRow = { code: string; teacher_token: string; phase: string; game_state: string; updated_at: number };
 type PlayerRow = { id: string; name: string; role: string; character_state: string };
 type MapTemplate = { id: string; name: string; tiles: Tile[]; starts: string[] };
-type Room = { code: string; teacherToken: string; phase: GamePhase; state: DungeonState; groups: Group[] };
+type Room = { code: string; teacherToken: string; phase: GamePhase; state: DungeonState; groups: Group[]; revision: number };
 
 const MAP_SIZE = 13;
 const FLOOR_COUNT = 3;
@@ -43,7 +43,10 @@ const BESTIARY: MonsterData[] = [
 ];
 const DEFAULT_FEED = ["The parties gather at their separate dungeon entrances."];
 const MAX_GROUP_CHARACTERS = 4;
-const MAX_GROUPS = 4;
+const MAX_GROUPS = 8;
+// Shared across all groups, so these scale with the group limit to keep each group's recent history visible.
+const MAX_ROLL_HISTORY = MAX_GROUPS * MAX_GROUP_CHARACTERS;
+const MAX_FEED_LINES = MAX_GROUPS * 3;
 
 function database() {
   if (!env.DB) throw new Error("Game storage is temporarily unavailable.");
@@ -238,10 +241,10 @@ function parseDungeon(raw: string): DungeonState {
   return migrated;
 }
 function floorFor(room: Room, number: number) { return room.state.floors[number - 1]; }
-function addFeed(state: DungeonState, message: string) { state.feed = [message, ...state.feed].slice(0, 12); }
+function addFeed(state: DungeonState, message: string) { state.feed = [message, ...state.feed].slice(0, MAX_FEED_LINES); }
 function addRoll(state: DungeonState, roll: Omit<DiceRoll, "id" | "createdAt">): DiceRoll {
   const result = { ...roll, id: id(), createdAt: Date.now() };
-  state.rolls = [result, ...state.rolls].slice(0, 8);
+  state.rolls = [result, ...state.rolls].slice(0, MAX_ROLL_HISTORY);
   return result;
 }
 function livingCharacters(group: Group) { return group.characters.filter((character) => character.hp > 0); }
@@ -391,10 +394,12 @@ function spawnGroup(room: Room, group: Group, floorNumber: number) {
   const floor = floorFor(room, floorNumber);
   const occupied = new Set(room.groups.filter((other) => other.id !== group.id && other.stats.floor === floorNumber).map((other) => `${other.stats.x},${other.stats.y}`));
   const start = floor.starts.map((tileId) => floor.tiles.find((tile) => tile.id === tileId))
-    .find((tile) => tile && !occupied.has(`${tile.x},${tile.y}`) && (!floor.revealed.includes(tile.id) || floor.starts.includes(tile.id) || tile.kind === "room"));
+    .find((tile) => tile && !tile.enemy && !occupied.has(`${tile.x},${tile.y}`) && (!floor.revealed.includes(tile.id) || floor.starts.includes(tile.id) || tile.kind === "room"));
   const tile = start
     ?? floor.tiles.find((candidate) => candidate.kind === "room" && !candidate.enemy && !occupied.has(`${candidate.x},${candidate.y}`))
-    ?? floor.tiles.find((candidate) => candidate.kind === "corridor" && !candidate.enemy && !occupied.has(`${candidate.x},${candidate.y}`));
+    ?? floor.tiles.find((candidate) => candidate.kind === "corridor" && !candidate.enemy && !occupied.has(`${candidate.x},${candidate.y}`))
+    // Small custom maps can have fewer open tiles than groups, so groups share a start rather than failing to join.
+    ?? floor.starts.map((tileId) => floor.tiles.find((candidate) => candidate.id === tileId)).find((candidate) => candidate && !candidate.enemy);
   if (!tile) throw new Error(`No open starting tile on floor ${floorNumber}.`);
   tile.kind = "entrance";
   tile.name = "Party Entrance";
@@ -406,7 +411,7 @@ function spawnGroup(room: Room, group: Group, floorNumber: number) {
 }
 async function loadRoom(code: string): Promise<Room | null> {
   const db = database();
-  const row = await db.prepare("SELECT code, teacher_token, phase, game_state FROM rooms WHERE code = ?").bind(code).first<RoomRow>();
+  const row = await db.prepare("SELECT code, teacher_token, phase, game_state, updated_at FROM rooms WHERE code = ?").bind(code).first<RoomRow>();
   if (!row) return null;
   const result = await db.prepare("SELECT id, name, role, character_state FROM players WHERE room_code = ? ORDER BY created_at, id").bind(code).all<PlayerRow>();
   const state = parseDungeon(row.game_state);
@@ -434,7 +439,7 @@ async function loadRoom(code: string): Promise<Room | null> {
   const room: Room = {
     code: row.code, teacherToken: row.teacher_token,
     phase: row.phase === "lobby" ? "lobby" : groups.length && groups.every((group) => group.stats.floor > FLOOR_COUNT || group.gameOver) ? "complete" : "exploration",
-    state, groups,
+    state, groups, revision: row.updated_at,
   };
   for (const group of groups) {
     if (group.stats.floor <= FLOOR_COUNT && !floorFor(room, group.stats.floor).tiles.some((tile) => tile.x === group.stats.x && tile.y === group.stats.y)) {
@@ -475,13 +480,23 @@ function errorResponse(error: unknown) {
   console.error("Dungeon Expedition error", error);
   return Response.json({ error: "The expedition lost its connection. Please try again." }, { status: 500 });
 }
+// Every action rewrites the whole room, so a write based on a stale read would erase another group's action.
+// updated_at doubles as a revision: a write only applies if the room is unchanged since it was read, otherwise the action reruns.
+class RoomConflict extends Error {}
+const ROOM_UNCHANGED = "EXISTS (SELECT 1 FROM rooms WHERE code = ? AND updated_at = ?)";
+const MAX_ACTION_ATTEMPTS = 12;
+function nextRevision(room: Room) { return Math.max(Date.now(), room.revision + 1); }
 async function saveRoom(room: Room) {
   const db = database();
   if (room.phase !== "lobby" && room.groups.length && room.groups.every((group) => group.stats.floor > FLOOR_COUNT || group.gameOver)) room.phase = "complete";
-  await db.batch([
-    db.prepare("UPDATE rooms SET phase = ?, game_state = ?, updated_at = ? WHERE code = ?").bind(room.phase, JSON.stringify(room.state), Date.now(), room.code),
-    ...room.groups.map((group) => db.prepare("UPDATE players SET role = ?, character_state = ? WHERE id = ? AND room_code = ?").bind(group.characterClass, JSON.stringify(storedGroupStats(group)), group.id, room.code)),
+  const revision = nextRevision(room);
+  const results = await db.batch([
+    ...room.groups.map((group) => db.prepare(`UPDATE players SET role = ?, character_state = ? WHERE id = ? AND room_code = ? AND ${ROOM_UNCHANGED}`).bind(group.characterClass, JSON.stringify(storedGroupStats(group)), group.id, room.code, room.code, room.revision)),
+    // Runs last because it changes the revision the statements above check.
+    db.prepare("UPDATE rooms SET phase = ?, game_state = ?, updated_at = ? WHERE code = ? AND updated_at = ?").bind(room.phase, JSON.stringify(room.state), revision, room.code, room.revision),
   ]);
+  if (!results[results.length - 1].meta.changes) throw new RoomConflict();
+  room.revision = revision;
 }
 function hitChance(dexterity: number) { return Math.max(35, Math.min(90, 50 + (dexterity - 10) * 3)); }
 export async function GET(request: Request) {
@@ -498,6 +513,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, string>;
+    for (let attempt = 0; attempt < MAX_ACTION_ATTEMPTS; attempt++) {
+      try {
+        return await handleAction(body);
+      } catch (error) {
+        if (!(error instanceof RoomConflict)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 40 * (attempt + 1)));
+      }
+    }
+    return Response.json({ error: "The dungeon is very busy. Please try that again." }, { status: 503 });
+  } catch (error) { return errorResponse(error); }
+}
+
+async function handleAction(body: Record<string, string>): Promise<Response> {
     const db = database();
     if (body.action === "create") {
       const savedCreatures = await db.prepare("SELECT id, name, color, trim_color, colors, parts, stats FROM creature_designs WHERE kind = 'monster' ORDER BY created_at DESC").all<{ id: string; name: string; color: string; trim_color: string; colors: string; parts: string; stats: string }>();
@@ -570,10 +598,12 @@ export async function POST(request: Request) {
       refreshGroupStats(player);
       room.groups.push(player);
       spawnGroup(room, player, 1);
-      await db.batch([
-        db.prepare("INSERT INTO players (id, room_code, name, role, character_state, created_at) VALUES (?, ?, ?, ?, ?, ?)").bind(player.id, code, player.name, characterClass, JSON.stringify(storedGroupStats(player)), Date.now()),
-        db.prepare("UPDATE rooms SET game_state = ?, updated_at = ? WHERE code = ?").bind(JSON.stringify(room.state), Date.now(), code),
+      const revision = nextRevision(room);
+      const results = await db.batch([
+        db.prepare(`INSERT INTO players (id, room_code, name, role, character_state, created_at) SELECT ?, ?, ?, ?, ?, ? WHERE ${ROOM_UNCHANGED}`).bind(player.id, code, player.name, characterClass, JSON.stringify(storedGroupStats(player)), Date.now(), code, room.revision),
+        db.prepare("UPDATE rooms SET game_state = ?, updated_at = ? WHERE code = ? AND updated_at = ?").bind(JSON.stringify(room.state), revision, code, room.revision),
       ]);
+      if (!results[results.length - 1].meta.changes) throw new RoomConflict();
       return Response.json({ playerId: player.id, state: publicState(room, { playerId: player.id }) });
     }
     if (body.action === "start" || body.action === "reset") {
@@ -898,5 +928,4 @@ export async function POST(request: Request) {
       return Response.json({ state: publicState(room, { playerId: group.id }), ...(monsterAttackEffect ? { monsterAttack: monsterAttackEffect } : {}), ...(battleEnd ? { battleEnd } : {}) });
     }
     return Response.json({ error: "Unknown action." }, { status: 400 });
-  } catch (error) { return errorResponse(error); }
 }
