@@ -132,6 +132,7 @@ Use the music controls at the top of the screen to play or pause the background 
 - Rooms inactive for more than 24 hours may be cleaned up when a new expedition is created.
 - No student accounts are required. Group and hero names are visible to the other participants in the room; use classroom-appropriate display names and avoid personal information.
 - Saved maps and designs are shared within the deployment's library. The creator library is not an individual student account or private workspace.
+- Deleting a saved map or design requires the delete key. The server checks it against a SHA-256 hash in `app/delete-key.ts`, which also explains how to change the key.
 
 ## Run locally in a classroom
 

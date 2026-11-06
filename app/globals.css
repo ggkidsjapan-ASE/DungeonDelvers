@@ -248,6 +248,10 @@ h1, h2, h3, p { text-wrap: pretty; }
 .battle-result-dialog h2 { margin: 0; font: 500 clamp(1.7rem, 6vw, 2.35rem)/1.12 Georgia, serif; }
 .battle-result-dialog > p:not(.eyebrow) { max-width: 340px; margin: 13px 0 22px; color: var(--muted); font-size: .9rem; line-height: 1.55; }
 .battle-result-dialog .primary { width: 100%; }
+.delete-key-dialog input { width: 100%; min-height: 44px; margin-top: 6px; padding: 8px 12px; border: 2px solid var(--line); background: #101a18; color: inherit; font: inherit; }
+.delete-key-dialog label { align-self: flex-start; }
+.delete-key-dialog .error { margin: 10px 0 0; }
+.delete-key-actions { width: 100%; display: grid; grid-template-columns: 1fr 2fr; align-items: center; gap: 10px; margin-top: 18px; }
 @keyframes battle-lunge { from { transform: translateX(0) translateY(0); } to { transform: translateX(34px) translateY(-5px); } }
 @keyframes battle-archer-shot { from { transform: translateX(0); } 40% { transform: translateX(-7px); } to { transform: translateX(8px); } }
 @keyframes battle-thief-lunge { from { transform: translateX(0); } to { transform: translateX(42px) translateY(-8px); } }

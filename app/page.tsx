@@ -582,9 +582,9 @@ export default function Home() {
     setMaps((current) => [data.map!, ...current.filter((saved) => saved.id !== data.map!.id)]);
     return data.map;
   }
-  async function deleteMap(id: string) {
+  async function deleteMap(id: string, deleteKey: string) {
     const response = await fetch("/api/maps", {
-      method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }),
+      method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, deleteKey }),
     });
     const data = await response.json() as { deleted?: string; error?: string };
     if (!response.ok || data.deleted !== id) throw new Error(data.error || "Could not delete this map.");
@@ -599,9 +599,9 @@ export default function Home() {
     setDesigns((current) => [data.design!, ...current.filter((saved) => saved.id !== data.design!.id)]);
     return data.design;
   }
-  async function deleteDesign(id: string) {
+  async function deleteDesign(id: string, deleteKey: string) {
     const response = await fetch("/api/creations", {
-      method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }),
+      method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, deleteKey }),
     });
     const data = await response.json() as { deleted?: string; error?: string };
     if (!response.ok || data.deleted !== id) throw new Error(data.error || "Could not delete this design.");
@@ -654,9 +654,9 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
   designError: string;
   onCreate: (mapId?: string) => void;
   onSaveMap: (map: Omit<MapTemplate, "id"> & { id?: string }) => Promise<MapTemplate>;
-  onDeleteMap: (id: string) => Promise<void>;
+  onDeleteMap: (id: string, deleteKey: string) => Promise<void>;
   onSaveDesign: (design: DesignInput & { id?: string }) => Promise<SavedDesign>;
-  onDeleteDesign: (id: string) => Promise<void>;
+  onDeleteDesign: (id: string, deleteKey: string) => Promise<void>;
   busy: boolean;
   error: string;
 }) {
@@ -664,9 +664,7 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
   const [selectedMapId, setSelectedMapId] = useState("");
   const [editingMap, setEditingMap] = useState<MapTemplate | null | undefined>(undefined);
   const [editingDesign, setEditingDesign] = useState<{ kind: CreatorKind; design?: SavedDesign } | null>(null);
-  const [deletingMapId, setDeletingMapId] = useState("");
-  const [deletingDesignId, setDeletingDesignId] = useState("");
-  const [deleteError, setDeleteError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{ name: string; run: (deleteKey: string) => Promise<void> } | null>(null);
   if (editingMap !== undefined) return <MapEditor initialMap={editingMap} onClose={() => setEditingMap(undefined)} onSave={async (map) => {
     const saved = await onSaveMap(map);
     setSelectedMapId(saved.id);
@@ -677,26 +675,14 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
     setEditingDesign(null);
   }} />;
   const selectedMap = maps.find((map) => map.id === selectedMapId);
-  async function deleteMap(map: MapTemplate) {
-    if (!window.confirm(`Delete "${map.name}"? This cannot be undone.`)) return;
-    setDeletingMapId(map.id);
-    setDeleteError("");
-    try {
-      await onDeleteMap(map.id);
+  function deleteMap(map: MapTemplate) {
+    setPendingDelete({ name: map.name, run: async (deleteKey) => {
+      await onDeleteMap(map.id, deleteKey);
       setSelectedMapId((current) => current === map.id ? "" : current);
-    } catch (cause) {
-      setDeleteError(cause instanceof Error ? cause.message : "Could not delete this map.");
-    } finally {
-      setDeletingMapId("");
-    }
+    } });
   }
-  async function deleteDesign(design: SavedDesign) {
-    if (!window.confirm(`Delete "${design.name}"? This cannot be undone.`)) return;
-    setDeletingDesignId(design.id);
-    setDeleteError("");
-    try { await onDeleteDesign(design.id); }
-    catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Could not delete this design."); }
-    finally { setDeletingDesignId(""); }
+  function deleteDesign(design: SavedDesign) {
+    setPendingDelete({ name: design.name, run: (deleteKey) => onDeleteDesign(design.id, deleteKey) });
   }
   if (section === "home") return <section className="landing landing-home homepage">
     <div className="landing-art" aria-hidden="true"><span>⌖</span><i>✦</i><b>♜</b></div>
@@ -722,9 +708,8 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
       {maps.length ? <div className="map-library-grid">{maps.map((map) => <article key={map.id} className={`map-library-card ${selectedMapId === map.id ? "selected" : ""}`}>
         <button className="map-library-select" onClick={() => setSelectedMapId(selectedMapId === map.id ? "" : map.id)} aria-pressed={selectedMapId === map.id}><strong>{map.name}</strong><span>{map.tiles.length} tiles · {map.tiles.filter((tile) => tile.enemy).length} monsters · {map.tiles.filter((tile) => tile.kind === "treasure").length} chests</span></button>
         <button className="text-button" onClick={() => setEditingMap(map)} aria-label={`Edit ${map.name}`}><Pencil /> Edit</button>
-        <button className="text-button danger map-delete-button" onClick={() => void deleteMap(map)} disabled={!!deletingMapId} aria-label={`Delete ${map.name}`}>{deletingMapId === map.id ? "Deleting…" : "Delete"}</button>
+        <button className="text-button danger map-delete-button" onClick={() => deleteMap(map)} aria-label={`Delete ${map.name}`}>Delete</button>
       </article>)}</div> : <p className="muted map-library-empty">No saved maps yet. Create one to guarantee a custom layout on floor 1.</p>}
-      {deleteError && <p className="error" role="alert">{deleteError}</p>}
     </div> : <div className={`workshop-content ${section === "monsters" ? "monster-workshop-content" : "character-workshop-content"}`}>
       <div className="workshop-heading"><p className="eyebrow">Dungeon workshop</p><h1>{section === "characters" ? "Character creator" : "Monster creator"}</h1><p>{section === "characters" ? "Save custom heroes for students to choose when forming a party." : "Your saved creatures join the monsters that can appear in future expeditions."}</p></div>
       <div className="workshop-toolbar"><button className="primary" onClick={() => setEditingDesign({ kind: section === "characters" ? "character" : "monster" })}><Pencil /> Create {section === "characters" ? "character" : "monster"}</button></div>
@@ -737,13 +722,45 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
         <div className="design-card-copy"><div className="design-card-stats">{design.kind === "character" ? <><span>DMG {design.stats.damage}</span><span>DEX {design.stats.dexterity}</span><span>SPD {design.stats.speed}</span></> : <><span>DMG {design.stats.damageMin}–{design.stats.damageMax}</span><span>SPD {design.stats.speed}</span><span>{design.stats.bounty} gold</span></>}</div></div>
         <div className="design-card-actions">
           <button className="text-button" onClick={() => setEditingDesign({ kind: design.kind, design })} aria-label={`Edit ${design.name}`}><Pencil /> Edit</button>
-          <button className="text-button danger" disabled={!!deletingDesignId} onClick={() => void deleteDesign(design)} aria-label={`Delete ${design.name}`}>{deletingDesignId === design.id ? "Deleting…" : "Delete"}</button>
+          <button className="text-button danger" onClick={() => deleteDesign(design)} aria-label={`Delete ${design.name}`}>Delete</button>
         </div>
       </article>)}</div>
       {designs.filter((design) => design.kind === (section === "characters" ? "character" : "monster")).length === 0 && <p className="muted map-library-empty">No saved designs yet. Create one to add it to the library.</p>}
-      {deleteError && <p className="error" role="alert">{deleteError}</p>}
     </div>}
+    {pendingDelete && <DeleteKeyDialog name={pendingDelete.name} onCancel={() => setPendingDelete(null)} onSubmit={async (deleteKey) => {
+      await pendingDelete.run(deleteKey);
+      setPendingDelete(null);
+    }} />}
   </section>;
+}
+
+function DeleteKeyDialog({ name, onCancel, onSubmit }: { name: string; onCancel: () => void; onSubmit: (deleteKey: string) => Promise<void> }) {
+  const [deleteKey, setDeleteKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return <div className="inventory-dialog-backdrop">
+    <form className="battle-result-dialog delete-key-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-key-title" onKeyDown={(event) => { if (event.key === "Escape" && !busy) onCancel(); }} onSubmit={(event) => {
+      event.preventDefault();
+      setBusy(true);
+      setError("");
+      onSubmit(deleteKey.trim()).catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : "Could not delete this item.");
+        setDeleteKey("");
+        setBusy(false);
+      });
+    }}>
+      <p className="eyebrow">Delete key required</p>
+      <h2 id="delete-key-title">Delete “{name}”?</h2>
+      <p>This cannot be undone.</p>
+      <label className="form-label" htmlFor="delete-key-input">Delete key</label>
+      <input id="delete-key-input" type="password" autoFocus autoComplete="off" value={deleteKey} onChange={(event) => setDeleteKey(event.target.value)} />
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="delete-key-actions">
+        <button type="button" className="text-button" onClick={onCancel} disabled={busy}>Cancel</button>
+        <button type="submit" className="primary" disabled={busy || !deleteKey.trim()}>{busy ? "Deleting…" : "Delete"}</button>
+      </div>
+    </form>
+  </div>;
 }
 
 function DesignEditor({ kind, initialDesign, onClose, onSave }: { kind: CreatorKind; initialDesign?: SavedDesign; onClose: () => void; onSave: (design: DesignInput & { id?: string }) => Promise<void> }) {

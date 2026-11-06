@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { CHARACTER_CLASSES, CREATOR_COLORS, DEFAULT_CHARACTER_STATS, DEFAULT_MONSTER_STATS, defaultPartColors, type CharacterClass, type CharacterDesignStats, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign, validBodyParts } from "../../creations";
+import { rejectInvalidDeleteKey } from "../../delete-key";
 
 const BUILT_IN_MONSTERS = ["Mossling", "Cave Bat", "Stone Golem", "Ember Dragon", "Abyssal Warden", "Frost Wyrm"];
 
@@ -106,7 +107,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const body = await request.json() as { id?: unknown };
+    const body = await request.json() as { id?: unknown; deleteKey?: unknown };
+    const rejected = await rejectInvalidDeleteKey(body.deleteKey);
+    if (rejected) return rejected;
     if (typeof body.id !== "string" || !/^[\da-f-]{36}$/i.test(body.id)) return Response.json({ error: "Choose a valid saved design to delete." }, { status: 400 });
     const result = await database().prepare("DELETE FROM creature_designs WHERE id = ?").bind(body.id).run();
     if (!result.meta.changes) return Response.json({ error: "This saved design no longer exists." }, { status: 404 });

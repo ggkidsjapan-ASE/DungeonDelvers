@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { rejectInvalidDeleteKey } from "../../delete-key";
 
 const MAP_SIZE = 13;
 const TILE_KINDS = new Set(["corridor", "room", "treasure", "key", "exit", "trap"]);
@@ -97,7 +98,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const body = await request.json() as { id?: unknown };
+    const body = await request.json() as { id?: unknown; deleteKey?: unknown };
+    const rejected = await rejectInvalidDeleteKey(body.deleteKey);
+    if (rejected) return rejected;
     if (typeof body.id !== "string" || !/^[\da-f-]{36}$/i.test(body.id)) {
       return Response.json({ error: "Choose a valid saved map to delete." }, { status: 400 });
     }
