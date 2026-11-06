@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { HERO_VIEW_BOX, heroLayers, type PixelLayer } from "./hero-art";
 import QRCode from "qrcode";
 import { ArrowDownToLine, Bomb, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Swords, TriangleAlert, Users, VolumeX, X } from "lucide-react";
 import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
@@ -171,85 +172,10 @@ function MusicToggle() {
 
 function PixelSprite({ characterClass, color, trimColor = "#d7d1c7", colors, className = "", appearance }: { characterClass: CharacterClass; color: string; trimColor?: string; colors?: PartColors; className?: string; appearance?: BodyParts }) {
   const parts = appearance || defaultBodyParts("character", characterClass);
-  const palette = {
-    C: colors?.torso || color,
-    A: colors?.arms || color,
-    L: colors?.legs || color,
-    H: colors?.head || color,
-    S: "#efbf8c",
-    E: "#28212b",
-    M: "#bdc8c8",
-    T: trimColor,
-    B: "#765137",
-  };
-  // Class silhouettes stay recognizable even when the player swaps equipment:
-  // equipment changes details while every class keeps the same lean human frame.
-  const torso: Record<string, string[]> = {
-    tunic: ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", ".CC.CC.CC.", "..CCCCCC..", "..CC..CC.."],
-    plate: ["..CCCCCC..", ".CCCCCCCC.", ".CCTTTTCC.", ".CCCCCCCC.", "..CCCCCC..", "..CC..CC.."],
-    chainmail: ["...CCCC...", "..CCCCCC..", ".CTCTCTCC.", ".TCTCTCTC.", ".CTCTCTCC.", "..CCCCCC.."],
-    "full-plate": ["..CCCCCC..", ".CCCCCCCC.", ".CCTTTTCC.", ".CCCCCCCC.", "..CCCCCC..", "..CC..CC.."],
-    vest: ["...CCCC...", "..CCCCCC..", ".CC..CCCC.", ".CC..CCCC.", "..C..CCC..", "..CCCCCC.."],
-    cloak: ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", "..CCCCCC..", "..CCCCCC..", "..CCCCCC..", "...CCCC..."],
-    leather: ["...BBBB...", "..BBBBBB..", ".BBTTTTBB.", ".BBTTTTBB.", "..BBBBBB..", "..BB..BB.."],
-    "forest-cloak": ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", "..CCCCCC..", "..CCCCCC..", "..CCCCCC..", "...CCCC..."],
-    robe: ["...CCCC...", "..CCCCCC..", ".CCCCCCCC.", "..CCCCCC..", "..CCCCCC..", "..CCCCCC..", ".CCCCCCCC."],
-  };
-  const arms: Record<string, string[]> = {
-    // The sprite is only 18px wide and the torso covers the inner arm pixels.
-    // Keep each exposed arm at least 2px wide so it reads as an arm, not a line.
-    sleeves: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
-    gauntlets: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
-    "plate-gauntlets": ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "..AAA........AAA..", "...AA........AA...", "...SS........SS..."],
-    gloves: ["..AA..........AA..", "..AAA........AAA..", "..AAA........AAA..", "...MM........MM...", "...SS........SS..."],
-    bracers: ["..AA..........AA..", "..AAA........AAA..", "..TT..........TT..", "...AA........AA...", "...SS........SS..."],
-    "archer-bracers": ["..AA..........AA..", "..AAA........AAA..", "..TT..........TT..", "..TT..........TT..", "...AA........AA...", "...SS........SS..."],
-    "wide-sleeves": [".AAA..........AAA.", ".AAAA........AAAA.", "..AAA........AAA..", "..AAA........AAA..", "...SS........SS..."],
-  };
-  const legs: Record<string, string[]> = {
-    trousers: ["..LL..LL..", "..LL..LL..", "..LL..LL..", ".LL....LL."],
-    greaves: ["..LL..LL..", "..LL..LL..", "..LT..TL..", ".LL....LL."],
-    "plate-greaves": ["..LL..LL..", ".LLT..TLL.", ".LLT..TLL.", "LLL....LLL"],
-    boots: ["..LL..LL..", "..LL..LL..", "..LL..LL..", ".LLL..LLL."],
-    "leather-boots": ["..LL..LL..", ".LTT..TTL.", "..LL..LL..", ".LLL..LLL."],
-    "forest-boots": ["..LL..LL..", ".LTT..TTL.", "..LL..LL..", "..LL..LL.."],
-    "robe-hem": ["...CCCC...", "..CCCCCC..", "..CCCCCC..", ".CCCCCCCC."],
-  };
-  const headwear: Record<string, string[]> = {
-    hair: ["..HHHH..", ".HHHHHH.", ".HH..HH.."],
-    helmet: ["..HHHH..", ".HHHHHH.", "HHHHHHHH", "HH....HH"],
-    "great-helm": [".HHHHHH.", "HHHHHHHH", "HHTTTTHH", "HHHHHHHH"],
-    hood: ["..HHHH..", ".HHHHHH.", "HH....HH", "HH....HH"],
-    mask: ["..HHHH..", ".HHHHHH.", ".HHHHHH.", "..HHHH.."],
-    headband: ["..HHHH..", ".HHHHHH.", ".HTTTTH."],
-    "robin-hood-hat": ["......T...", ".....HHH..", "....HHHHH.", "...HHHHHHH", ".HHHHHHHHH", "HHHHHHHHHH"],
-    "wizard-hat": ["....H...", "...HHH..", "..HHHHH.", ".HHHHHHH", "HHHHHHHH"],
-    circlet: ["..TTTT..", ".HHTTHH.", "..HHHH.."],
-  };
-  const face = ["..SSSS..", ".SSSSSS.", ".SE..ES.", ".SSSSSS.", "..SSSS.."];
-  const archerTorso: Record<string, string[]> = {
-    tunic: ["...CCCC...", "...CCCC...", "..CCCCCC..", "..CC..CC..", "...C..C..."],
-    vest: ["...CCCC...", "..CC..CC..", "..CC..CC..", "...C..C...", "...CCCC..."],
-    "forest-cloak": ["...CCCC...", "..CCCCCC..", "..CCCCCC..", ".CCCCCCCC.", "..CCCCCC.."],
-    leather: ["...BBBB...", "..BBBBBB..", "..BBTTBB..", "..BBBBBB..", "...B..B..."],
-  };
-  const classArmDefaults: Record<CharacterClass, string> = { Warrior: "gauntlets", Thief: "gloves", Archer: "archer-bracers", Mage: "wide-sleeves" };
-  const armRows = arms[parts.arms] || arms[classArmDefaults[characterClass]];
-  const torsoRows = characterClass === "Archer"
-    ? archerTorso[parts.torso] || ["...CCCC...", "..CCCCCC..", "..CC..CC..", "...C..C..."]
-    : torso[parts.torso] || torso.tunic;
-  const layers: PixelLayer[] = [
-    { rows: legs[parts.legs] || legs.trousers, palette: { ...palette, C: colors?.legs || color }, x: 4, y: 18 },
-    { rows: armRows, palette, x: 0, y: 12 },
-    { rows: torsoRows, palette, x: characterClass === "Archer" ? 4 : 4, y: 12 },
-    { rows: face, palette, x: 5, y: 6 },
-    { rows: headwear[parts.head] || headwear.hair, palette, x: parts.head === "robin-hood-hat" ? 4 : 5, y: parts.head === "robin-hood-hat" ? 1 : 3 },
-    ...(characterClass === "Mage" ? [{ rows: [".TT.", "TMMT", ".TT."], palette, x: 2, y: 7 }] : []),
-  ];
-  return <PixelGrid layers={layers} className={"pixel-sprite " + className} label={characterClass + " pixel art hero"} viewBox="0 0 18 24" />;
+  return <PixelGrid layers={heroLayers(characterClass, parts, color, trimColor, colors)} className={"pixel-sprite " + className} label={characterClass + " pixel art hero"} viewBox={HERO_VIEW_BOX} outlineColor="#000000" />;
 }
 
-function PixelGrid({ layers, className, label, viewBox }: { layers: { rows: string[]; palette: Record<string, string>; x?: number; y?: number }[]; className: string; label: string; viewBox: string }) {
+function PixelGrid({ layers, className, label, viewBox, outlineColor = "#1d1a23" }: { layers: PixelLayer[]; className: string; label: string; viewBox: string; outlineColor?: string }) {
   return <svg className={className} viewBox={viewBox} role="img" aria-label={label} shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }}>
     {layers.flatMap((layer, index) => {
       const cells = new Set(layer.rows.flatMap((row, y) => Array.from(row).flatMap((pixel, x) => pixel === "." ? [] : [x + "," + y])));
@@ -260,7 +186,7 @@ function PixelGrid({ layers, className, label, viewBox }: { layers: { rows: stri
       }
       const outline = Array.from(border, (cell) => {
         const [x, y] = cell.split(",").map(Number);
-        return <rect key={index + "-o-" + cell} x={x + (layer.x || 0)} y={y + (layer.y || 0)} width="1" height="1" fill="#1d1a23" />;
+        return <rect key={index + "-o-" + cell} x={x + (layer.x || 0)} y={y + (layer.y || 0)} width="1" height="1" fill={outlineColor} />;
       });
       const pixels = layer.rows.flatMap((row, y) => Array.from(row).map((pixel, x) => pixel === "." ? null : <rect key={index + "-" + y + "-" + x} x={x + (layer.x || 0)} y={y + (layer.y || 0)} width="1" height="1" fill={layer.palette[pixel] || "#ff00ff"} />));
       return [...outline, ...pixels];
