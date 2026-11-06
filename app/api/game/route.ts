@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { ITEMS, PARTY_TONIC_HEAL, isItemId } from "../../items";
+import { BOSS_FLOORS } from "../../boss-floors";
 import { CREATOR_COLORS, DEFAULT_MONSTER_STATS, RUN_ESCAPE_CHANCE, TRAP_DODGE_TARGET, clampCharacterStat, dodgeChance, defaultBodyParts, defaultPartColors, type BodyParts, type MonsterDesignStats, type PartColors, validBodyParts } from "../../creations";
 import { BOSSES } from "../../bosses";
 
@@ -148,44 +149,26 @@ function normalizeMapTile(tile: Tile): Tile {
 }
 function createBossFloor(monsters: MonsterData[]): FloorState {
   const boss = BOSSES[Math.floor(Math.random() * BOSSES.length)];
-  const variants = [
-    {
-      name: "The Ember Vault",
-      path: [[1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6], [8, 6], [9, 6], [10, 6], [11, 6],
-        [3, 4], [4, 4], [5, 4], [3, 5], [4, 5], [5, 5], [8, 5], [8, 4]],
-      chest: [3, 4], trap: [8, 5], monster: [5, 4], bossAt: [10, 6], exit: [11, 6], start: [1, 6],
-    },
-    {
-      name: "The Shattered Deep",
-      path: [[1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2],
-        [3, 3], [3, 4], [3, 5], [4, 3], [4, 4], [4, 5], [7, 3], [8, 3], [9, 3], [8, 4]],
-      chest: [4, 4], trap: [7, 3], monster: [9, 3], bossAt: [10, 2], exit: [11, 2], start: [1, 2],
-    },
-    {
-      name: "The Frozen Labyrinth",
-      path: [[1, 10], [2, 10], [3, 10], [4, 10], [5, 10], [5, 9], [5, 8], [6, 8], [7, 8], [8, 8], [9, 8], [10, 8], [11, 8],
-        [2, 8], [3, 8], [4, 8], [2, 9], [3, 9], [4, 9], [8, 7], [8, 6]],
-      chest: [3, 8], trap: [8, 7], monster: [4, 8], bossAt: [10, 8], exit: [11, 8], start: [1, 10],
-    },
-  ];
-  const variant = variants[Math.floor(Math.random() * variants.length)];
-  const guardian = pickMonster(monsters)?.name;
-  const special = new Map<string, Pick<Tile, "kind" | "name" | "enemy">>([
-    [variant.chest.join(","), { kind: "treasure", name: "Forgotten Cache" }],
-    [variant.trap.join(","), { kind: "trap", name: "Hidden Trap" }],
-    [variant.monster.join(","), { kind: "room", name: guardian ? "Guardian's Den" : "Silent Den", ...(guardian ? { enemy: guardian } : {}) }],
-    [variant.bossAt.join(","), { kind: "key", name: `Lair of ${boss.name}`, enemy: boss.name }],
-    [variant.exit.join(","), { kind: "exit", name: "Final Stairway" }],
-    [variant.start.join(","), { kind: "room", name: "Dungeon Entrance" }],
-  ]);
-  const tiles = variant.path.map(([x, y]): Tile => {
-    const detail = special.get(`${x},${y}`);
-    return {
-      id: `3-${x}-${y}`, name: detail?.name ?? "Stone Passage", x, y,
-      kind: detail?.kind ?? "corridor", ...(detail?.enemy ? { enemy: detail.enemy } : {}),
-    };
-  });
-  return makeFloor(3, variant.name, tiles, [`3-${variant.start[0]}-${variant.start[1]}`]);
+  const layout = BOSS_FLOORS[Math.floor(Math.random() * BOSS_FLOORS.length)];
+  const tiles: Tile[] = [];
+  const starts: string[] = [];
+  layout.rows.forEach((row, y) => Array.from(row).forEach((symbol, x) => {
+    if (symbol === ".") return;
+    const id = `3-${x}-${y}`;
+    const position = { id, x, y };
+    if (symbol === "S") {
+      starts.push(id);
+      tiles.push({ ...position, kind: "room", name: "Dungeon Entrance" });
+    } else if (symbol === "M") {
+      const guardian = pickMonster(monsters)?.name;
+      tiles.push({ ...position, kind: "room", name: guardian ? "Guardian's Den" : "Silent Den", ...(guardian ? { enemy: guardian } : {}) });
+    } else if (symbol === "T") tiles.push({ ...position, kind: "trap", name: "Hidden Trap" });
+    else if (symbol === "C") tiles.push({ ...position, kind: "treasure", name: "Forgotten Cache" });
+    else if (symbol === "B") tiles.push({ ...position, kind: "key", name: `Lair of ${boss.name}`, enemy: boss.name });
+    else if (symbol === "E") tiles.push({ ...position, kind: "exit", name: "Final Stairway" });
+    else tiles.push({ ...position, kind: "corridor", name: "Stone Passage" });
+  }));
+  return makeFloor(3, layout.name, tiles, shuffle(starts));
 }
 // Saved maps can name monsters that no longer exist, so those tiles get a current library monster.
 function withLibraryMonsters(tile: Tile, monsters: MonsterData[]): Tile {

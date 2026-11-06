@@ -1,0 +1,98 @@
+// The final floor is not built by students. One of these large mazes is picked at random for each dungeon.
+//
+// Each layout fills the 13 x 13 map. Tiles next to each other are always connected, so passages stay one gap apart.
+// . wall   # passage   S party start   M monster   T trap   C chest   B boss   E exit (reachable only through the boss)
+export type BossFloorLayout = { name: string; rows: string[] };
+
+export const BOSS_FLOORS: BossFloorLayout[] = [
+  {
+    name: "The Coiled Descent",
+    rows: [
+      "S##T##T###S##",
+      "......#.....#",
+      "####S###CM#.#",
+      "#.........#.#",
+      "#.###M###.#.S",
+      "#.#.....#.#.#",
+      "S.#.#BE.#.C.#",
+      "#.#.#...#.M.#",
+      "#.#.#M##T.#.#",
+      "#.#.......#.#",
+      "#.CM#######.S",
+      "#.....#.....#",
+      "S#######S##T#",
+    ],
+  },
+  {
+    name: "The Serpent Galleries",
+    rows: [
+      "S#####S##T##S",
+      "............#",
+      "####CM####S##",
+      "#.....#......",
+      "##S##.##S##T#",
+      "....#.......#",
+      "#####.######S",
+      "#.....#......",
+      "S###CM###M###",
+      "............#",
+      "##M#####T###C",
+      "#............",
+      "T#####M###BE.",
+    ],
+  },
+  {
+    name: "The Hollow Warrens",
+    rows: [
+      "#######M####S",
+      "#.#.M.#......",
+      "M.#.#.####M.#",
+      "#.#.#.T...#.#",
+      "#.#.#.##S####",
+      "#.M.#.#.#....",
+      "#.#.S.#.#.C.S",
+      "#.#...#...#.#",
+      "S.###.T###S##",
+      "..T.#.#.#...M",
+      "###.M.##S##.C",
+      "M...#.T.#....",
+      "C.EB#.######S",
+    ],
+  },
+  {
+    name: "The Winding Catacombs",
+    rows: [
+      "EB##M.S#####S",
+      "....#.#.....#",
+      "###.#.#.S.###",
+      "#.#.T.#.#.#..",
+      "M####.S##.S##",
+      "#.........#.#",
+      "#.##T###C.#.S",
+      "#.M.#...#.#.#",
+      "T##.#M###.S.#",
+      "....#...#...#",
+      "###M#.CM####T",
+      "#.#.....#...#",
+      "CM###M###.S##",
+    ],
+  },
+  {
+    name: "The Sundered Halls",
+    rows: [
+      "EB##M.C.#T#.C",
+      "....#.M...#.M",
+      "S##.####T####",
+      "#.#...#.#...#",
+      "####S.#.#M#.#",
+      "#.T...#...#.#",
+      "S.###.C.###.#",
+      "#...#.M.#...#",
+      "#.S.###.#.SMM",
+      "#.#.....#...#",
+      "#.##S.#######",
+      "#.#.#.T.....#",
+      "S##.###.S###M",
+    ],
+  },
+];
