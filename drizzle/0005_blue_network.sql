@@ -1,0 +1,1 @@
+ALTER TABLE `creature_designs` ADD `colors` text DEFAULT '{}' NOT NULL;
