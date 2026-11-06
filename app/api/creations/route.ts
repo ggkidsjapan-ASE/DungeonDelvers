@@ -1,8 +1,7 @@
 import { env } from "cloudflare:workers";
 import { CHARACTER_CLASSES, CREATOR_COLORS, DEFAULT_CHARACTER_STATS, DEFAULT_MONSTER_STATS, defaultPartColors, type CharacterClass, type CharacterDesignStats, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign, validBodyParts } from "../../creations";
 import { rejectInvalidDeleteKey } from "../../delete-key";
-
-const BUILT_IN_MONSTERS = ["Mossling", "Cave Bat", "Stone Golem", "Ember Dragon", "Abyssal Warden", "Frost Wyrm"];
+import { BOSSES } from "../../bosses";
 
 function database() {
   if (!env.DB) throw new Error("Game storage is temporarily unavailable.");
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
     const existing = await db.prepare("SELECT kind FROM creature_designs WHERE id = ?").bind(id).first<{ kind: CreatorKind }>();
     if (existing && existing.kind !== design.kind) return Response.json({ error: "A saved design cannot change its creator type." }, { status: 409 });
     if (design.kind === "monster") {
-      if (BUILT_IN_MONSTERS.some((name) => name.toLowerCase() === design.name.toLowerCase())) return Response.json({ error: "Choose a name different from the built-in monsters." }, { status: 409 });
+      if (BOSSES.some((boss) => boss.name.toLowerCase() === design.name.toLowerCase())) return Response.json({ error: "Choose a name different from the boss monsters." }, { status: 409 });
       const duplicate = await db.prepare("SELECT id FROM creature_designs WHERE kind = 'monster' AND lower(name) = lower(?) AND id <> ? LIMIT 1").bind(design.name, id).first<{ id: string }>();
       if (duplicate) return Response.json({ error: "A saved monster already uses that name." }, { status: 409 });
     }

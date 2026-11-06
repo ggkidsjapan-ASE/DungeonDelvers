@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { CREATOR_COLORS, DEFAULT_MONSTER_STATS, defaultBodyParts, defaultPartColors, type BodyParts, type MonsterDesignStats, type PartColors, validBodyParts } from "../../creations";
+import { BOSSES } from "../../bosses";
 
 type GamePhase = "lobby" | "exploration" | "complete";
 type CharacterClass = "Warrior" | "Thief" | "Archer" | "Mage";
@@ -33,14 +34,6 @@ const CLASS_DATA: Record<CharacterClass, { icon: string; hp: number; damage: num
   Archer: { icon: "🏹", hp: 15, damage: 12, dexterity: 15, speed: 11 },
   Mage: { icon: "🔮", hp: 20, damage: 11, dexterity: 12, speed: 9 },
 };
-const BESTIARY: MonsterData[] = [
-  { name: "Mossling", icon: "🍄", description: "A shy cave spirit that guards the old tunnels.", bounty: 10, damageMin: 2, damageMax: 5, speed: 8 },
-  { name: "Cave Bat", icon: "🦇", description: "Quick, skittish, and easily startled by bright light.", bounty: 15, damageMin: 2, damageMax: 6, speed: 16 },
-  { name: "Stone Golem", icon: "🗿", description: "An ancient sentinel that wakes when its halls are disturbed.", bounty: 30, damageMin: 4, damageMax: 8, speed: 4 },
-  { name: "Ember Dragon", icon: "🐉", description: "A fire-breathing tyrant guarding the last stair.", bounty: 60, damageMin: 5, damageMax: 10, speed: 12, boss: true },
-  { name: "Abyssal Warden", icon: "👹", description: "A hulking guardian bound to the deepest dungeon.", bounty: 60, damageMin: 5, damageMax: 9, speed: 8, boss: true },
-  { name: "Frost Wyrm", icon: "🐲", description: "An ancient ice serpent waiting at the end of the final floor.", bounty: 60, damageMin: 4, damageMax: 10, speed: 14, boss: true },
-];
 const DEFAULT_FEED = ["The parties gather at their separate dungeon entrances."];
 const MAX_GROUP_CHARACTERS = 4;
 const MAX_GROUPS = 8;
@@ -72,7 +65,12 @@ function shuffle<T>(items: T[]): T[] {
   }
   return items;
 }
-function createFloor(number: number, monsters: MonsterData[] = BESTIARY): FloorState {
+// All monsters come from the saved library, which can be small or empty. A floor with no
+// monster to place simply has an open room, and an unguarded key can be picked up.
+function pickMonster(monsters: MonsterData[]): MonsterData | undefined {
+  return monsters[Math.floor(Math.random() * monsters.length)];
+}
+function createFloor(number: number, monsters: MonsterData[]): FloorState {
   const paths = Array.from({ length: MAP_SIZE }, () => Array<boolean>(MAP_SIZE).fill(false));
   const visited = new Set<string>();
   const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]];
@@ -117,15 +115,14 @@ function createFloor(number: number, monsters: MonsterData[] = BESTIARY): FloorS
         name = "Stairway";
       } else if (x === key[0] && y === key[1]) {
         kind = "key";
-        name = "Guardian's Chamber";
-        enemy = "Stone Golem";
+        enemy = pickMonster(monsters)?.name;
+        name = enemy ? "Guardian's Chamber" : "Key Chamber";
       } else if (x === treasure[0] && y === treasure[1]) {
         kind = "treasure";
         name = "Forgotten Cache";
       } else if (monsterPoints.some(([mx, my]) => x === mx && y === my)) {
-        const availableMonsters = monsters.filter((monster) => !monster.boss);
-        enemy = availableMonsters[Math.floor(Math.random() * availableMonsters.length)].name;
-        name = enemy === "Mossling" ? "Mossling Hollow" : "Echoing Den";
+        enemy = pickMonster(monsters)?.name;
+        if (enemy) name = "Echoing Den";
       }
       tiles.push({ id: nodeKey(point), name, x, y, kind, ...(enemy ? { enemy } : {}) });
     }
@@ -139,35 +136,35 @@ function makeFloor(number: number, name: string, tiles: Tile[], starts: string[]
 function normalizeMapTile(tile: Tile): Tile {
   return tile.kind === "room" ? { ...tile, kind: "corridor" } : tile;
 }
-function createBossFloor(): FloorState {
+function createBossFloor(monsters: MonsterData[]): FloorState {
+  const boss = BOSSES[Math.floor(Math.random() * BOSSES.length)];
   const variants = [
     {
-      name: "The Ember Vault", boss: "Ember Dragon",
+      name: "The Ember Vault",
       path: [[1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6], [8, 6], [9, 6], [10, 6], [11, 6],
         [3, 4], [4, 4], [5, 4], [3, 5], [4, 5], [5, 5], [8, 5], [8, 4]],
       chest: [3, 4], trap: [8, 5], monster: [5, 4], bossAt: [10, 6], exit: [11, 6], start: [1, 6],
     },
     {
-      name: "The Shattered Deep", boss: "Abyssal Warden",
+      name: "The Shattered Deep",
       path: [[1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2],
         [3, 3], [3, 4], [3, 5], [4, 3], [4, 4], [4, 5], [7, 3], [8, 3], [9, 3], [8, 4]],
       chest: [4, 4], trap: [7, 3], monster: [9, 3], bossAt: [10, 2], exit: [11, 2], start: [1, 2],
     },
     {
-      name: "The Frozen Labyrinth", boss: "Frost Wyrm",
+      name: "The Frozen Labyrinth",
       path: [[1, 10], [2, 10], [3, 10], [4, 10], [5, 10], [5, 9], [5, 8], [6, 8], [7, 8], [8, 8], [9, 8], [10, 8], [11, 8],
         [2, 8], [3, 8], [4, 8], [2, 9], [3, 9], [4, 9], [8, 7], [8, 6]],
       chest: [3, 8], trap: [8, 7], monster: [4, 8], bossAt: [10, 8], exit: [11, 8], start: [1, 10],
     },
   ];
   const variant = variants[Math.floor(Math.random() * variants.length)];
-  const boss = BESTIARY.find((entry) => entry.name === variant.boss);
-  if (!boss) throw new Error(`No bestiary entry found for ${variant.boss}.`);
+  const guardian = pickMonster(monsters)?.name;
   const special = new Map<string, Pick<Tile, "kind" | "name" | "enemy">>([
     [variant.chest.join(","), { kind: "treasure", name: "Forgotten Cache" }],
     [variant.trap.join(","), { kind: "trap", name: "Hidden Trap" }],
-    [variant.monster.join(","), { kind: "room", name: "Guardian's Den", enemy: "Stone Golem" }],
-    [variant.bossAt.join(","), { kind: "key", name: `${variant.boss}'s Lair`, enemy: variant.boss }],
+    [variant.monster.join(","), { kind: "room", name: guardian ? "Guardian's Den" : "Silent Den", ...(guardian ? { enemy: guardian } : {}) }],
+    [variant.bossAt.join(","), { kind: "key", name: `Lair of ${boss.name}`, enemy: boss.name }],
     [variant.exit.join(","), { kind: "exit", name: "Final Stairway" }],
     [variant.start.join(","), { kind: "room", name: "Dungeon Entrance" }],
   ]);
@@ -180,13 +177,22 @@ function createBossFloor(): FloorState {
   });
   return makeFloor(3, variant.name, tiles, [`3-${variant.start[0]}-${variant.start[1]}`]);
 }
+// Saved maps can name monsters that no longer exist, so those tiles get a current library monster.
+function withLibraryMonsters(tile: Tile, monsters: MonsterData[]): Tile {
+  if (!tile.enemy || monsters.some((monster) => monster.name === tile.enemy)) return tile;
+  const enemy = pickMonster(monsters)?.name;
+  if (enemy) return { ...tile, enemy, name: `${enemy} Den` };
+  const emptied = { ...tile, name: "Stone Passage" };
+  delete emptied.enemy;
+  return emptied;
+}
 function createDungeon(templates: Pick<MapTemplate, "name" | "tiles" | "starts">[] = [], customMonsters: MonsterData[] = []): DungeonState {
-  const bestiary = [...BESTIARY, ...customMonsters];
-  const floors = [createFloor(1, bestiary), createFloor(2, bestiary), createBossFloor()];
+  const floors = [createFloor(1, customMonsters), createFloor(2, customMonsters), createBossFloor(customMonsters)];
   templates.slice(0, 2).forEach((template, index) => {
-    floors[index] = makeFloor(index + 1, template.name, template.tiles, template.starts);
+    floors[index] = makeFloor(index + 1, template.name, template.tiles.map((tile) => withLibraryMonsters(tile, customMonsters)), template.starts);
   });
-  return { floors, battles: {}, feed: [...DEFAULT_FEED], rolls: [], bestiary };
+  const bosses: MonsterData[] = BOSSES.map(({ name, icon, description, bounty, damageMin, damageMax, speed, boss }) => ({ name, icon, description, bounty, damageMin, damageMax, speed, boss }));
+  return { floors, battles: {}, feed: [...DEFAULT_FEED], rolls: [], bestiary: [...customMonsters, ...bosses] };
 }
 function resetDungeon(state: DungeonState): DungeonState {
   return {
@@ -197,7 +203,7 @@ function resetDungeon(state: DungeonState): DungeonState {
         : tile),
       revealed: [], defeated: [], keyFound: false,
     })),
-    battles: {}, feed: [...DEFAULT_FEED], rolls: [], bestiary: state.bestiary ?? BESTIARY,
+    battles: {}, feed: [...DEFAULT_FEED], rolls: [], bestiary: state.bestiary ?? [],
   };
 }
 function parseCharacter(raw: string, role: string): CharacterState {
@@ -217,10 +223,10 @@ function parseDungeon(raw: string): DungeonState {
   const saved = JSON.parse(raw || "{}") as Partial<DungeonState>;
   if (saved.floors?.length) return {
     ...saved, floors: saved.floors,
-    bestiary: saved.bestiary ?? BESTIARY,
+    bestiary: saved.bestiary ?? [],
     battles: Object.fromEntries(Object.entries(saved.battles ?? {}).map(([groupId, battle]) => {
       const legacy = battle as Battle & { attack?: number };
-      const monster = saved.bestiary?.find((entry) => entry.name === battle.enemy) ?? BESTIARY.find((entry) => entry.name === battle.enemy);
+      const monster = saved.bestiary?.find((entry) => entry.name === battle.enemy);
       return [groupId, {
         ...battle,
         damageMin: battle.damageMin ?? Math.max(1, (legacy.attack ?? 4) - 2),
@@ -429,7 +435,7 @@ async function loadRoom(code: string): Promise<Room | null> {
   });
   for (const group of groups) {
     const battle = state.battles[group.id];
-    const monster = battle && BESTIARY.find((entry) => entry.name === battle.enemy);
+    const monster = battle && state.bestiary.find((entry) => entry.name === battle.enemy);
     const regularMonsterHp = [15, 20, 30, 40][Math.min(Math.max(group.characters.length, 1), MAX_GROUP_CHARACTERS) - 1];
     if (battle && monster?.boss && battle.maxHp === regularMonsterHp) {
       battle.maxHp = regularMonsterHp * 2;

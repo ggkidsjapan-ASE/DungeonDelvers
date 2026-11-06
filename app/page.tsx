@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import { BOSS_VIEW_BOX, findBoss } from "./bosses";
 import { HERO_VIEW_BOX, heroLayers, type PixelLayer } from "./hero-art";
+import { MONSTER_VIEW_BOX, monsterLayers } from "./monster-art";
 import QRCode from "qrcode";
 import { ArrowDownToLine, Bomb, BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Coins, Copy, DoorOpen, Feather, FlaskConical, Footprints, Heart, KeyRound, Map, Music2, Package, PackageOpen, Pencil, RotateCcw, RotateCw, ScrollText, Shield, SkipForward, Skull, Swords, TriangleAlert, Users, VolumeX, X } from "lucide-react";
 import { BODY_PART_OPTIONS, CHARACTER_CLASSES, CREATOR_COLORS, defaultBodyParts, defaultPartColors, type BodyParts, type CharacterDesign, type CharacterDesignStats, type CharacterClass as CharacterClassType, type CreatorKind, type DesignInput, type MonsterDesignStats, type PartColors, type SavedDesign } from "./creations";
@@ -271,75 +273,14 @@ function LegacyPixelSprite({ characterClass, color, trimColor = "#d7d1c7", color
 
 function MonsterSprite({ monster, className = "" }: { monster: { name: string; color?: string; trimColor?: string; colors?: PartColors; appearance?: BodyParts; parts?: BodyParts }; className?: string }) {
   const parts = monster.appearance || monster.parts || defaultBodyParts("monster");
-  const main = monster.color || "#a56d42";
-  const colorFor = (part: keyof PartColors, fallback = main) => monster.colors?.[part] || fallback;
-  const pal = (base: string) => ({ G: base, H: colorFor("head"), M: base, P: base, T: monster.trimColor || "#d3b35d", S: monster.trimColor || "#d3b35d", W: "#ffe786", K: "#211a25" });
-  const heads: Record<string, string[]> = {
-    beast:["....H......H...","...HHH....HHH..","..HHHHHHHHHHHH.",".HHHWW.HH.WWHHH",".HHHKK.HH.KKHHH","..HHHHHHHHHHHH.","...HHHSSHHHHH..","....HHSSSSHH..."],
-    horned:["..T.........T..","..TT.......TT..","...HHHHHHHHH...","..HHHWW..WWHHH.","..HHHKK..KKHHH.","...HHHHHHHHH...","....HHHHHH.....",".....HHHH......"],
-    skull:[".....TTTT......","...TTTTTTTT....","..TTTTTTTTTT...","..TTWWTTWWTT...","..TTKKTTKKTT...","...TTTTTTTT....","...TTSTTSST....","...TT.TT.TT...."],
-    slime:["......HH.......","....HHHHHH.....","..HHHHHHHHHH...",".HHHWWWHHHHH..",".HHHKKKHHHHHHH.","..HHHHHHHHHHH...","....HHHHHHH....."],
-    dragon:["..T..HHHH..T...","..TT.HHHHHH.TT..","..HHHHHHHHHHH..",".HHHWW..WWHHHHH.",".HHHKK..KKHHHHH.","..HHHHHHHHHHHHH.","...HHHHHHHHHSS.","....HHHHHHHSSS.."],
-    eyestalks:["...TT......TT...","...TWK....KWT...","....T......T....",".....HHHHHH.....","...HHWW..WWHH...","...HHKK..KKHH...","....HHHHHHHH....",".....HHHHHH....."],
-  };
-  const bodies: Record<string,string[]> = {
-    scaled:["...GG......GG...","...GGGGGGGGGG...","...GGTGGGTGGG...","...GGGGGGGGGG...","....GGGGGGGG....","....GTGGTGGG....",".....GGGGGG....."],
-    furred:["..HHH......HHH..",".HHHHHHHHHHHHHH.",".HHHGHHHHHHHGHH.","..HHHHHHHHHHHH..","...HHHHHHHHHH...","...HHGHHHHGHH...","....HHHHHHHH...."],
-    stone:["..MMMM......MMMM",".MMMMMMMMMMMMMMM",".MMMTMMMMMMMTMMM",".MMMMMMMMMMMMMMM","..MMMMMMMMMMMM..","..MMMTMMMMMMTMM.","...MMMMMMMMMM..."],
-    "slime-body":["....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGTGGGTGGGG.",".GGGGGGGGGGGGGG.","..GGGGGTGGGGGG..","...GGGGGGGGGG..."],
-    armored:["..MMMM......MMMM",".MMMMMMMMMMMMMMM",".MMMTMMMMMMMTMMM","..MMMMMMMMMMMM..","..MMMMMMMMMMMM..","...MMMTMMTMMM...","....MMMMMMMM...."],
-    spectral:["...PPPP....PPPP.","..PPPPPPPPPPPP..",".PPPPWPPPPPWPPP.",".PPPPPPPPPPPPPP.","..PPPPPPPPPPPP..","...PPPPWPPPPPP..","....PPPPPPPP...."],
-  };
-  const armArt: Record<string,string[]> = {
-    claws:[".GG............GG","..GG..........GG.","...GG........GG..","....GG......GG...",".....TT......TT.."],
-    talons:[".GG............GG","..GG..........GG.","...GG........GG..","....GG......GG...","....TTT......TTT."],
-    paws:["..GG..........GG.","..GG..........GG.","...GG........GG..","...GG........GG..","...TTT......TTT.."],
-    "stone-arms":["MMMM............MMMM",".MMMM..........MMMM.","..MMMM........MMMM..","...MMMM......MMMM...","....MMMM....MMMM...."],
-    tentacles:["...GG........GG...","..GGG........GGG..",".GGG..........GGG.","..GGG........GGG..","...TT........TT..."],
-  };
-  const legArt: Record<string,string[]> = {
-    talons:["...GG......GG...","...GG......GG...","...GG......GG...","..TTT......TTT.."],
-    hooves:["...GG......GG...","...GG......GG...","..GGGG....GGGG..",".TTTT......TTTT."],
-    paws:["...GG......GG...","..GGGG....GGGG..","..GGGG....GGGG..",".TTTT......TTTT."],
-    "stone-legs":["..MMMM....MMMM..","..MMMM....MMMM..","..MMMM....MMMM..",".MMMMM....MMMMM."],
-    coiled:["................","...GGGGGGGG.....",".GGGG....GGGG....","..GGGGGGGGGGGG..."],
-  };
-  const wings: Record<string,string[][]> = {
-    bat:[["GG.......","GGGG.....",".GGGG....","..GGGG...","..GGGGGGG"],[".......GG",".....GGGG","....GGGG.","...GGGG..","GGGGGGG.."]],
-    feathered:[["W.WW.....","WWWWW....",".WWWWW...","..WWWWW..","..WWWWWWW"],[".....WW.W","....WWWWW","...WWWWW.","..WWWWW..","WWWWWWW.."]],
-    dragon:[["T........","TT.......","TTT......","TTTT.....","..TTTTTTT"],["........T",".......TT","......TTT",".....TTTT","TTTTTTT.."]],
-  };
-  // Tails occupy a large part of the sprite and begin under the hindquarters,
-  // so each one has a thick, continuous root plus a distinct readable tip.
-  const tailArt: Record<string, string[]> = {
-    spiked: [
-      "..GGGGGGGG..", ".GGGGGGGGGG.", "...GGGGGGGGG", ".....GGGGGGG",
-      ".......GGGGG", ".........GGG", "...........TT", "..........TTT",
-    ],
-    serpent: [
-      "..GGGGGGGG..", "...GGGGGGGGG", "......GGGGGG", ".........GGG",
-      ".......GGGGG", "....GGGGGGG.", "..GGGGGGG...", ".GGGGGG......",
-    ],
-    flame: [
-      "..GGGGGGGG..", ".GGGGGGGGGG.", "...GGGGGGGGG", ".....GGGGGGG",
-      ".......GGGGTT", ".........GGTT", "...........TTT", "..........TT..",
-    ],
-    clubbed: [
-      "..GGGGGGGG..", "...GGGGGGGGG", ".....GGGGGGG", ".......GGGGG",
-      "......GGGGGG", ".....GGGGGGG", "......GGGGGG", ".......GGGGG",
-    ],
-  };
-  const tail = parts.tail && parts.tail !== "none" ? tailArt[parts.tail] || tailArt.spiked : [];
-  const wing = parts.wings && parts.wings !== "none" ? wings[parts.wings] || wings.bat : [];
-  const layers = [
-    ...(wing.length ? [{rows:wing[0],palette:pal(colorFor("wings")),x:1,y:3},{rows:wing[1],palette:pal(colorFor("wings")),x:20,y:3}] : []),
-    ...(tail.length ? [{rows:tail,palette:pal(colorFor("tail")),x:18,y:10}] : []),
-    {rows:legArt[parts.legs] || legArt.talons,palette:pal(colorFor("legs")),x:6,y:13},
-    {rows:bodies[parts.torso] || bodies.scaled,palette:pal(colorFor("torso")),x:6,y:7},
-    {rows:armArt[parts.arms] || armArt.claws,palette:pal(colorFor("arms")),x:4,y:9},
-    {rows:heads[parts.head] || heads.beast,palette:pal(colorFor("head")),x:6,y:0},
-  ];
-  return <PixelGrid layers={layers} className={"monster-design-sprite " + className} label={(monster.name || "Dungeon monster") + " pixel art monster"} viewBox="0 0 30 19" />;
+  return <PixelGrid layers={monsterLayers(parts, monster.color || "#a56d42", monster.trimColor || "#d3b35d", monster.colors)} className={"monster-design-sprite " + className} label={(monster.name || "Dungeon monster") + " pixel art monster"} viewBox={MONSTER_VIEW_BOX} outlineColor="#000000" />;
+}
+
+// Bosses are hand drawn. Older rooms can still list built-in monsters that only have an icon.
+function MonsterArt({ monster }: { monster: Parameters<typeof MonsterSprite>[0]["monster"] & { icon?: string } }) {
+  const boss = findBoss(monster.name);
+  if (boss) return <PixelGrid layers={boss.pieces.map((piece) => ({ ...piece, palette: boss.palette }))} className="monster-design-sprite boss-sprite" label={`${boss.name} pixel art boss`} viewBox={BOSS_VIEW_BOX} outlineColor="#000000" />;
+  return monster.appearance ? <MonsterSprite monster={monster} /> : <span>{monster.icon}</span>;
 }
 
 function LegacyMonsterSprite({ monster, className = "" }: { monster: { name: string; color?: string; trimColor?: string; colors?: PartColors; appearance?: BodyParts; parts?: BodyParts }; className?: string }) {
@@ -591,7 +532,7 @@ function Landing({ maps, mapError, designs, designError, onCreate, onSaveMap, on
   const [editingMap, setEditingMap] = useState<MapTemplate | null | undefined>(undefined);
   const [editingDesign, setEditingDesign] = useState<{ kind: CreatorKind; design?: SavedDesign } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ name: string; run: (deleteKey: string) => Promise<void> } | null>(null);
-  if (editingMap !== undefined) return <MapEditor initialMap={editingMap} onClose={() => setEditingMap(undefined)} onSave={async (map) => {
+  if (editingMap !== undefined) return <MapEditor initialMap={editingMap} monsterNames={designs.filter((design) => design.kind === "monster").map((design) => design.name)} onClose={() => setEditingMap(undefined)} onSave={async (map) => {
     const saved = await onSaveMap(map);
     setSelectedMapId(saved.id);
     setEditingMap(undefined);
@@ -832,7 +773,7 @@ function BattleScreen({ game, group, battle, battleEffect, monsterAttack, sequen
           </div>
           <div className="battle-vs" aria-hidden="true">VS</div>
           <div className={`battle-enemy ${monsterAttack ? "battle-enemy-attacking" : ""}`}>
-            <span className="battle-enemy-sprite" aria-hidden="true">{monster?.appearance ? <MonsterSprite monster={monster} /> : monster?.icon || "👾"}</span>
+            <span className="battle-enemy-sprite" aria-hidden="true">{monster && <MonsterArt monster={monster} />}</span>
             <span className="battle-platform monster-platform" />
             <div className="battle-actor-caption"><strong>{battle.enemy}</strong><small>{monster?.boss ? "Dungeon boss" : "Dungeon monster"}</small></div>
           </div>
@@ -889,19 +830,18 @@ const MAP_BRUSHES: { id: MapBrush; label: string }[] = [
   { id: "chest", label: "Chest" }, { id: "trap", label: "Trap" },
   { id: "key", label: "Key" }, { id: "exit", label: "Exit" },
 ];
-const MONSTER_ICONS: Record<string, string> = { Mossling: "🍄", "Cave Bat": "🦇", "Stone Golem": "🗿" };
-
-function MapEditor({ initialMap, onClose, onSave }: { initialMap: MapTemplate | null; onClose: () => void; onSave: (map: Omit<MapTemplate, "id"> & { id?: string }) => Promise<void> }) {
+function MapEditor({ initialMap, monsterNames, onClose, onSave }: { initialMap: MapTemplate | null; monsterNames: string[]; onClose: () => void; onSave: (map: Omit<MapTemplate, "id"> & { id?: string }) => Promise<void> }) {
   const [name, setName] = useState(initialMap?.name || "");
   const [tiles, setTiles] = useState<MapTile[]>(initialMap?.tiles.map((tile) => tile.kind === "room" ? { ...tile, kind: "corridor" } : tile) || []);
   const [starts, setStarts] = useState(initialMap?.starts || []);
   const [brush, setBrush] = useState<MapBrush>("path");
-  const [monster, setMonster] = useState("Mossling");
+  const [monster, setMonster] = useState(monsterNames[0] || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   function paint(x: number, y: number) {
     const id = `1-${x}-${y}`;
+    if (brush === "monster" && !monster) return;
     if (brush === "erase") {
       setTiles((current) => current.filter((tile) => tile.id !== id));
       setStarts((current) => current.filter((start) => start !== id));
@@ -947,7 +887,9 @@ function MapEditor({ initialMap, onClose, onSave }: { initialMap: MapTemplate | 
       <label className="map-name-field">Map name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={40} required placeholder="e.g. The Crystal Caverns" /></label>
       <div className="map-tools" aria-label="Map tile brush">
         {MAP_BRUSHES.map((item) => <button type="button" key={item.id} className={brush === item.id ? "selected" : ""} aria-pressed={brush === item.id} onClick={() => setBrush(item.id)}><span>{item.id === "erase" ? <X aria-hidden="true" /> : <MapMarker kind={item.id} />}</span>{item.label}</button>)}
-        {brush === "monster" && <label className="monster-choice">Monster<select value={monster} onChange={(event) => setMonster(event.target.value)}>{Object.keys(MONSTER_ICONS).map((name) => <option key={name}>{name}</option>)}</select></label>}
+        {brush === "monster" && (monsterNames.length
+          ? <label className="monster-choice">Monster<select value={monster} onChange={(event) => setMonster(event.target.value)}>{monsterNames.map((name) => <option key={name}>{name}</option>)}</select></label>
+          : <p className="muted">Create a monster in the Monster Creator to place it here.</p>)}
       </div>
       <div className="map-editor-card">
         <div className="map-caption"><span>Selected tool: {MAP_BRUSHES.find((item) => item.id === brush)?.label}</span><span>{tiles.length} tiles</span></div>
@@ -1270,8 +1212,8 @@ function FirstPersonExplore({ game, group, floor, onMove, onFacingChange, error 
           <path d="M-52 13H52M0-31V-43M-47-8L-56-16M47-8L56-16" stroke="#efaa6b" strokeWidth="3" opacity=".9" />
         </g>}
         {sceneKind === "monster" && <g className="corridor-object corridor-monster" transform="translate(400 274) scale(1.35)">
-          {sceneMonster?.appearance
-            ? <svg x="-34" y="-63" width="68" height="78" viewBox="0 0 48 48"><MonsterSprite monster={sceneMonster} /></svg>
+          {sceneMonster && (sceneMonster.appearance || findBoss(sceneMonster.name))
+            ? <svg x="-34" y="-63" width="68" height="78" viewBox="0 0 48 48"><MonsterArt monster={sceneMonster} /></svg>
             : <>
               <ellipse cx="0" cy="23" rx="41" ry="11" fill="#050806" opacity=".75" />
               <path d="M-31 10L-37-17L-18-9L0-25L19-9L37-17L31 11L21 22H-21Z" fill="#7b493c" stroke="#e29665" strokeWidth="4" strokeLinejoin="round" />
@@ -1347,9 +1289,9 @@ function GroupSummary({ group }: { group: Group }) {
 }
 
 function InfoPanel({ game, tab }: { game: GameState; tab: Tab }) {
-  if (tab === "bestiary") return <div className="info-grid">{game.bestiary.map((beast) => <article className="info-card" key={beast.name}><span>{beast.appearance ? <MonsterSprite monster={beast} /> : beast.icon}</span><div><strong>{beast.name}{beast.boss ? " · Boss" : ""}</strong><p>{beast.description}</p><small>Damage {beast.damageMin}–{beast.damageMax} · Speed {beast.speed} · Bounty {beast.bounty} gold</small></div></article>)}</div>;
+  if (tab === "bestiary") return <div className="info-grid">{game.bestiary.map((beast) => <article className="info-card" key={beast.name}><span><MonsterArt monster={beast} /></span><div><strong>{beast.name}{beast.boss ? " · Boss" : ""}</strong><p>{beast.description}</p><small>Damage {beast.damageMin}–{beast.damageMax} · Speed {beast.speed} · Bounty {beast.bounty} gold</small></div></article>)}</div>;
   if (tab === "items") return <div className="info-grid">{Object.entries(ITEM_LABELS).map(([item, label]) => <article className="info-card" key={item}><span>{item === "potion" ? "🧪" : item === "phoenix-feather" ? "🪶" : "💣"}</span><div><strong>{label}</strong><p>{item === "potion" ? "Restores up to 8 HP to one living hero." : item === "phoenix-feather" ? "Revives one fallen hero at half health." : "Deals 12 damage to a monster during battle."}</p></div></article>)}</div>;
-  if (tab === "bounties") return <div className="info-grid">{game.bestiary.map((beast) => <article className="bounty-card" key={beast.name}><span>{beast.appearance ? <MonsterSprite monster={beast} /> : beast.icon} {beast.name}</span><strong>{beast.bounty} <small>gold</small></strong></article>)}</div>;
+  if (tab === "bounties") return <div className="info-grid">{game.bestiary.map((beast) => <article className="bounty-card" key={beast.name}><span><MonsterArt monster={beast} /> {beast.name}</span><strong>{beast.bounty} <small>gold</small></strong></article>)}</div>;
   return null;
 }
 
@@ -1379,7 +1321,7 @@ function CreatureBook({ entries, mode, onClose }: { entries: BestiaryEntry[]; mo
       </header>
       {selectedEntry ? <div className="bestiary-entry-page">
         <button className="bestiary-back-button" onClick={() => setSelectedName(null)}><ChevronLeft /> {isBountyBook ? "All bounties" : "All creatures"}</button>
-        <div className="bestiary-entry-art">{selectedEntry.appearance ? <MonsterSprite monster={selectedEntry} /> : <span>{selectedEntry.icon}</span>}</div>
+        <div className="bestiary-entry-art"><MonsterArt monster={selectedEntry} /></div>
         <div className="bestiary-entry-copy">
           <p className="eyebrow">{isBountyBook ? "Posted reward" : selectedEntry.boss ? "Dungeon boss" : selectedEntry.custom ? "Custom creature" : "Dungeon creature"}</p>
           <h3>{selectedEntry.name}</h3>
@@ -1394,7 +1336,7 @@ function CreatureBook({ entries, mode, onClose }: { entries: BestiaryEntry[]; mo
       </div> : <div className="bestiary-book-intro">
         <p>{isBountyBook ? "Select a posted bounty to see the reward and learn about your target. Close the ledger to return to your adventure." : "Select a creature to open its field-guide page. Close the book whenever you’re ready to return to your adventure."}</p>
         <div className="bestiary-index">{entries.map((entry) => <button className="bestiary-index-entry" key={entry.name} onClick={() => setSelectedName(entry.name)}>
-          <span className="bestiary-index-art">{entry.appearance ? <MonsterSprite monster={entry} /> : entry.icon}</span>
+          <span className="bestiary-index-art"><MonsterArt monster={entry} /></span>
           <span className="bestiary-index-copy"><strong>{entry.name}{entry.boss ? " · Boss" : ""}</strong><small>{entry.description}</small></span>
           {isBountyBook ? <span className="bounty-index-reward"><Coins />{entry.bounty} <small>gold</small></span> : <ChevronRight aria-hidden="true" />}
         </button>)}</div>
@@ -1481,7 +1423,7 @@ function BattleCard({ game, group, onAction, host = false }: { game: GameState; 
   if (!battle || !group) return null;
   const initiativeOrder = battleTurnOrder(group, battle);
   function act(move: string, characterId: string) { if (!host) onAction("battle", { move, characterId }); }
-  return <section className="battle-card"><p className="eyebrow">Floor {battle.floor} {game.bestiary.find((beast) => beast.name === battle.enemy)?.boss ? "boss" : ""} encounter · {group.name}</p><div className="enemy-heading"><span>{game.bestiary.find((beast) => beast.name === battle.enemy)?.icon || "👾"}</span><div><h2>{battle.enemy}</h2><div className="health-track enemy"><i style={{ width: `${Math.max(0, battle.hp / battle.maxHp * 100)}%` }} /></div><small>{battle.hp} / {battle.maxHp} HP</small></div></div>
+  return <section className="battle-card"><p className="eyebrow">Floor {battle.floor} {game.bestiary.find((beast) => beast.name === battle.enemy)?.boss ? "boss" : ""} encounter · {group.name}</p><div className="enemy-heading"><span><MonsterArt monster={game.bestiary.find((beast) => beast.name === battle.enemy) ?? { name: battle.enemy }} /></span><div><h2>{battle.enemy}</h2><div className="health-track enemy"><i style={{ width: `${Math.max(0, battle.hp / battle.maxHp * 100)}%` }} /></div><small>{battle.hp} / {battle.maxHp} HP</small></div></div>
     <p className="battle-help">{initiativeOrder.map((actorId) => {
       if (actorId === MONSTER_TURN_ID) return `${battle.enemy} (SPD ${battle.speed})`;
       const hero = group.characters.find((character) => character.id === actorId);

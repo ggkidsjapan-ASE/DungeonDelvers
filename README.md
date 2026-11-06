@@ -56,9 +56,9 @@ The player screen shows a first-person view, movement controls, a minimap, party
 
 ### Floors, keys, and monsters
 
-Floors 1 and 2 use generated layouts unless saved custom maps are available. The host can select a map to guarantee it is used on floor 1. Up to two saved maps may be used across those floors; if the host selects none, maps are chosen randomly. A key chamber in a generated floor is guarded by a Stone Golem; custom maps have a key tile without a required guardian. The third floor is a randomly selected boss dungeon with a chest, a trap, a regular monster, a boss, and the exit.
+Floors 1 and 2 use generated layouts unless saved custom maps are available. The host can select a map to guarantee it is used on floor 1. Up to two saved maps may be used across those floors; if the host selects none, maps are chosen randomly. A key chamber in a generated floor is guarded by a random monster from the library; custom maps have a key tile without a required guardian. The third floor is a randomly selected boss dungeon with a chest, a trap, a regular monster, a boss, and the exit.
 
-Procedural floors can include saved custom monsters as regular encounters. The final floor uses one of the built-in bosses: Ember Dragon, Abyssal Warden, or Frost Wyrm. In the Bestiary, each creature's entry includes its description, damage range, Speed, and bounty. The Bounty Ledger focuses on the reward rather than repeating the monster's combat stats.
+All regular monsters come from the saved Monster Creator library; if the library is empty, rooms are empty and keys are unguarded. The final floor uses one of five hand-drawn bosses: The Hollow King, Maw of Greed, The Unblinking, Cinderheart, or Gloomfang Bloom. In the Bestiary, each creature's entry includes its description, damage range, Speed, and bounty. The Bounty Ledger focuses on the reward rather than repeating the monster's combat stats.
 
 ### Traps and treasure
 
@@ -110,7 +110,7 @@ Create a connected map on a 13 × 13 grid using the path, start, monster, chest,
 
 - Every path tile is walkable. Connected clusters of path tiles form rooms; no separate room brush is needed.
 - A valid map must have connected tiles, at least one starting point on an unoccupied path tile, exactly one key, and exactly one exit.
-- Place monsters, chests, and traps on separate tiles. The map's monster brush currently offers Mossling, Cave Bat, and Stone Golem.
+- Place monsters, chests, and traps on separate tiles. The map's monster brush offers monsters from the library. If a placed monster is later deleted, starting a game swaps in another library monster.
 - Save, edit, select, or delete maps in the library. A selected map is guaranteed to be floor 1 in the next expedition. Up to one additional saved map may be randomly used on floor 2; if no map is selected, saved maps may be randomly used on either floor.
 
 ### Character Creator

@@ -523,6 +523,7 @@ html, body { font-family: "Courier New", ui-monospace, monospace; }
 .monster-stat-rolls > span { display: grid; gap: 3px; text-align: center; }
 .monster-stat-rolls small { color: var(--muted); font-size: .65rem; font-weight: 500; }
 .monster-design-sprite { width: 100%; height: 100%; overflow: visible; }
+.enemy-heading > span .monster-design-sprite { display: block; width: 52px; height: 52px; }
 .battle-enemy-sprite .monster-design-sprite { width: min(190px, 34vw); height: min(190px, 34vw); }
 .info-card > span .monster-design-sprite { width: 48px; height: 48px; vertical-align: middle; }
 .bounty-card > span .monster-design-sprite { width: 28px; height: 28px; vertical-align: middle; }

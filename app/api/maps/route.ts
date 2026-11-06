@@ -3,7 +3,7 @@ import { rejectInvalidDeleteKey } from "../../delete-key";
 
 const MAP_SIZE = 13;
 const TILE_KINDS = new Set(["corridor", "room", "treasure", "key", "exit", "trap"]);
-const MONSTERS = new Set(["Mossling", "Cave Bat", "Stone Golem"]);
+const MAX_MONSTER_NAME = 24;
 type MapTile = { id: string; name: string; x: number; y: number; kind: string; enemy?: string };
 function normalizeTile(tile: MapTile): MapTile {
   return tile.kind === "room" ? { ...tile, kind: "corridor" } : tile;
@@ -37,7 +37,8 @@ function validateMap(value: unknown): { name: string; tiles: MapTile[]; starts: 
     const coordinate = `${x},${y}`;
     if (coordinates.has(coordinate)) return "The map contains duplicate tiles.";
     coordinates.add(coordinate);
-    if (tile.enemy !== undefined && (typeof tile.enemy !== "string" || !MONSTERS.has(tile.enemy))) return "Choose a monster from the bestiary.";
+    // Names are not checked against the library: monsters can be deleted later, and starting a game replaces any that are gone.
+    if (tile.enemy !== undefined && (typeof tile.enemy !== "string" || !tile.enemy || tile.enemy.length > MAX_MONSTER_NAME)) return "Choose a monster from the bestiary.";
     if (tile.kind === "exit" && tile.enemy) return "The exit cannot also contain a monster.";
     if ((tile.kind === "treasure" || tile.kind === "trap") && tile.enemy) return "Place monsters, chests, and traps on separate tiles.";
     tiles.push({

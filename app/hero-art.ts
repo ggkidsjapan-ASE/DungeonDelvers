@@ -1,7 +1,7 @@
 import type { BodyParts, CharacterClass, PartColors } from "./creations";
 
 export type PixelLayer = { rows: string[]; palette: Record<string, string>; x?: number; y?: number };
-type Part = { x: number; y: number; rows: string[] };
+type Part = { x: number; y: number; rows: string[]; back?: Part };
 
 // Heroes are drawn on a 30 x 40 grid. Each piece gets its own black outline from PixelGrid,
 // so pieces must keep a clear silhouette. Keep the option names in sync with BODY_PART_OPTIONS:
@@ -214,23 +214,40 @@ const TORSOS: Record<string, Part> = {
     ".CTTCWWWWCTTc.",
     ".cccc....cccc.",
   ] },
-  cloak: { x: 3, y: 15, rows: [
-    "...CCCCCCTTTTTTCCCCc..",
-    ".CCCCCCCCCTTTTCCCCCCc.",
-    ".CCCCCCCCCCCCCCCCCCCc.",
-    ".CCCCCCCCCCCCCCCCCCcc.",
-    ".CCCCCCCCCCCCCCCCCCcc.",
-    ".CCCCCCCCCCCCCCCCCCcc.",
-    "..CCCCcCCCCCCCcCCCcc..",
-    "..CCCCcCCCCCCCcCCCcc..",
-    ".CCCCCcCCCCCCCcCCCCcc.",
-    ".CCCCcCCCCCCCCCcCCCcc.",
-    ".CCCCcCCCCCCCCCcCCCcc.",
-    "CCCCCcCCCCCCCCCcCCCCcc",
-    "CCCCcCCCCCCCCCCCcCCCcc",
-    "CCCCcCCCCCCCCCCCcCCCcc",
-    "cccccccccccccccccccccc",
-  ] },
+  // The cape hangs behind the legs and arms, with a plain shirt and tied cords at the front.
+  cloak: { x: 8, y: 15, rows: [
+    "...TTCCCCTT...",
+    "..CCCTTTTCCc..",
+    "..CCCCCCCCCc..",
+    "..CCCCCCCCCc..",
+    "..CCCCCCCCCc..",
+    "..cCCCCCCCCc..",
+    "..KKKKTTKKKK..",
+    "..cCCCCCCCCc..",
+    "..cCCCCCCCCc..",
+    "..cCc....cCc..",
+  ], back: { x: 3, y: 14, rows: [
+    "....cccccccccccccc....",
+    "..cccccccccccccccccc..",
+    ".cccccccccccccccccccc.",
+    ".cccccccccccccccccccc.",
+    ".ccCcccccCCCCcccccCcc.",
+    ".ccCcccccccccccccCCcc.",
+    ".ccCcccccccccccccCCcc.",
+    ".cCCcccccccccccccCCcc.",
+    ".cCCcccccccccccccCCcc.",
+    ".cCCcccccccccccccCCcc.",
+    "ccCCcccccccccccccCCccc",
+    "ccCCcccccccccccccCCccc",
+    "ccCCcccccccccccccCCccc",
+    "ccCCcccccccccccccCCccc",
+    "ccCCcccccccccccccCCccc",
+    "ccCCcccccccccccccCCccc",
+    "cCCCcccccccccccccCCCcc",
+    "cCCCcccccccccccccCCCcc",
+    "cccc.ccccc.ccccc.ccccc",
+    "c.c...c.c...c.c...c.c.",
+  ] } },
   leather: { x: 8, y: 15, rows: [
     "..BBBBBBBBBB..",
     ".BBBTBBBBBBBb.",
@@ -477,7 +494,7 @@ const LEGS: Record<string, Part> = {
 // A saved design can only hold option names from BODY_PART_OPTIONS, but legacy rooms may not.
 const FALLBACK = { head: "hair", torso: "tunic", arms: "sleeves", legs: "trousers" };
 
-function shade(hex: string, amount = 0.32) {
+export function shade(hex: string, amount = 0.32) {
   const value = parseInt(hex.slice(1), 16);
   const channel = (shift: number) => Math.round(((value >> shift) & 255) * (1 - amount)).toString(16).padStart(2, "0");
   return `#${channel(16)}${channel(8)}${channel(0)}`;
@@ -493,10 +510,12 @@ export function heroLayers(characterClass: CharacterClass, parts: BodyParts, col
     T: trimColor, t: shade(trimColor), S: "#efbf8c", s: "#c98f62", B: "#8a5a35", b: "#5e3b22",
     K: "#000000", M: "#8fe6ff", W: "#f4f1e6", E: "#120f18",
   };
+  const torsoPart = TORSOS[parts.torso] || TORSOS[FALLBACK.torso];
   const pieces = [
+    ...(torsoPart.back ? [torsoPart.back] : []),
     LEGS[parts.legs] || LEGS[FALLBACK.legs],
     ARMS[parts.arms] || ARMS[FALLBACK.arms],
-    TORSOS[parts.torso] || TORSOS[FALLBACK.torso],
+    torsoPart,
     FACE,
     HEADS[parts.head] || HEADS[FALLBACK.head],
     ...(characterClass === "Mage" ? [{ x: 1, y: 8, rows: [".TT.", "TMMT", "TMMT", ".TT."] }] : []),
