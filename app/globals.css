@@ -511,7 +511,7 @@ html, body { font-family: "Courier New", ui-monospace, monospace; }
 .part-color-pickers > .form-label { margin: 0; }
 .part-color-pickers > small { margin-top: -7px; color: var(--muted); }
 .part-color-pickers .creator-color-field { padding: 6px 8px; }
-.part-color-pickers .creator-color-field .sprite-options { display: grid; grid-template-columns: repeat(8, minmax(28px, 38px)); gap: 6px; }
+.part-color-pickers .creator-color-field .sprite-options { display: grid; grid-template-columns: repeat(9, minmax(28px, 38px)); gap: 6px; }
 .part-color-pickers .creator-color-field .sprite-options button { width: 100%; height: 32px; }
 .design-stat-controls { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); background: #101a18; }
 .design-stat-controls .creator-heading { margin: 0; }
@@ -932,9 +932,9 @@ html, body { font-family: "Courier New", ui-monospace, monospace; }
   .group-join-form .roll-prompt { margin: 8px 0 0; font-size: .68rem; }
   .group-join-form .sprite-picker { min-width: 0; grid-area: sprite; align-items: flex-start; flex-direction: column; gap: 5px; padding: 7px; }
   .group-join-form .sprite-picker .form-label { margin: 0 0 3px; font-size: .68rem; }
-  .group-join-form .sprite-options { gap: 3px; }
-  .group-join-form .sprite-options button { width: 33px; height: 33px; padding: 2px; }
-  .group-join-form .sprite-options .pixel-sprite { width: 26px; height: 26px; }
+  .group-join-form .sprite-options { width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); gap: 3px; }
+  .group-join-form .sprite-options button { width: 100%; height: auto; aspect-ratio: 1; padding: 2px; }
+  .group-join-form .sprite-options .pixel-sprite { width: 100%; height: 100%; }
   .group-join-form form > .primary { grid-area: join; min-height: 45px; align-self: end; }
   .group-join-form > .error { position: fixed; bottom: 8px; left: 50%; z-index: 30; max-width: min(90vw, 600px); transform: translateX(-50%); }
 
@@ -2217,4 +2217,128 @@ html, body { background: #151a1b; }
       60px 35px,
       0 0;
   }
+}
+
+/* Crowded map tiles show one hero and a count of the groups there. */
+.tile-group-count { position: absolute; right: 0; bottom: 0; z-index: 1; padding: 1px 3px; background: #000; color: #ffe08b; font: 800 clamp(.62rem, 1.1vw, 1.1rem)/1.1 "Courier New", monospace; }
+
+/* Players use iPads: keep controls near the 44px touch size and small text legible, in both orientations. */
+@media (min-width: 720px) and (max-width: 1400px) {
+  .group-playing .first-person-controls { min-height: 144px; }
+  .group-playing .dpad { width: 156px; height: 144px; }
+  .group-playing .dpad-button svg { width: 24px; height: 24px; }
+  .first-person-map-button { min-height: 44px; }
+  .group-playing .group-exploration-side .inventory-item-copy strong,
+  .group-playing .group-exploration-side .inventory-item-copy small,
+  .battle-screen-content > .inventory-panel .inventory-item-copy strong,
+  .battle-screen-content > .inventory-panel .inventory-item-copy small,
+  .group-playing .inventory-item-count,
+  .group-playing .inventory-heading span,
+  .group-playing .navigation-status strong,
+  .group-playing .navigation-status span,
+  .group-playing .navigation-status b,
+  .group-playing .stat-strip span,
+  .group-playing .group-log p,
+  .group-playing .first-person-hint,
+  .battle-party-hero b,
+  .battle-party-hero small,
+  .battle-initiative strong,
+  .battle-turn-hint,
+  .battle-actor-caption small,
+  .battle-floor-label,
+  .battle-party-label { font-size: .75rem; }
+
+  .group-join-form .stat-roll-card small,
+  .group-join-form .stat-assignments label,
+  .group-join-form .stat-dice i,
+  .group-join-form .class-picker small,
+  .group-join-form .creator-heading small,
+  .group-join-form .sprite-picker small,
+  .group-join-form .form-label,
+  .party-identity .roster-heading .form-label { font-size: .75rem; }
+
+  .party-identity .roster-heading .roll-button,
+  .group-join-form .creator-heading .roll-button,
+  .group-join-form .roster-tabs button { min-height: 44px; padding: 6px 10px; font-size: .78rem; }
+  .group-join-form .sprite-options { grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; }
+  .party-identity .random-hero-button,
+  .party-identity > .saved-hero-field select,
+  .group-join-form .stat-assignments select { min-height: 44px; }
+  .party-class-choice .class-picker button small,
+  .group-join-form .sprite-picker .form-label { font-size: .75rem; }
+  .battle-screen-content > .inventory-panel .inventory-item-copy strong { white-space: normal; }
+}
+/* In iPad portrait the stats panel is narrow, so each roll is one row of dice and its total. */
+@media (min-width: 720px) and (max-width: 900px) {
+  .group-join-form .stat-roll-cards { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .group-join-form .stat-roll-card { grid-auto-flow: column; align-items: center; justify-content: space-between; padding: 4px 8px; }
+  .group-join-form .stat-roll-card small { display: none; }
+  .group-join-form .stat-dice i { width: 24px; height: 24px; }
+}
+
+/* The host runs at 1920x1080 on a classroom smartboard, so its screens must read from across the room. */
+@media (min-width: 1600px) and (min-height: 900px) {
+  .host-screen .topbar .floor-chip,
+  .host-screen .topbar .room-chip { font-size: 1.15rem; }
+  .host-screen .topbar .room-chip b { font-size: 1.5rem; }
+
+  .host-lobby { max-width: none; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: stretch; gap: 24px; padding: 20px 32px; }
+  .host-lobby .eyebrow { font-size: 1.05rem; }
+  .join-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .join-card h1 { margin: 6px 0; font-size: 3.4rem; line-height: 1.05; }
+  .join-card .muted { margin: 6px auto; font-size: 1.25rem; }
+  .qr-box { width: min(440px, 44vh); margin: 14px auto 8px; }
+  .room-code { font-size: 1.15rem; }
+  .room-code strong { font-size: 3.4rem; }
+  .party-card { max-height: 100%; padding: 28px; }
+  .party-card h2 { font-size: 3rem; }
+  .party-card .group-list { max-height: none; min-height: 0; flex: 1 1 auto; grid-auto-rows: minmax(0, 150px); gap: 14px; margin: 14px 0; }
+  .party-card .group-list .group-summary { padding: 14px; gap: 16px; }
+  .party-card .class-icon { width: 76px; height: 76px; }
+  .party-card .class-icon .pixel-sprite { width: 68px; height: 68px; }
+  .party-card .group-meta strong { font-size: 1.6rem; }
+  .party-card .group-meta > span { font-size: 1.15rem; }
+  .party-card .health-track { height: 10px; }
+  .party-card .host-actions p { font-size: 1.15rem; }
+  .party-card .host-actions .primary { min-height: 68px; font-size: 1.5rem; }
+
+  .central-layout { max-width: none; grid-template-columns: minmax(0, 1fr) 620px; gap: 14px; padding: 8px 16px; }
+  .board-title h1 { font-size: 2.8rem; }
+  .floor-picker button { min-height: 46px; font-size: 1.15rem; }
+  .host-map .map-caption { font-size: 1.15rem; }
+  .host-map .map-legend { gap: 6px 24px; font-size: 1.05rem; }
+  .host-map .map-legend .pixel-sprite, .map-card .map-legend .map-marker-icon { width: 28px; height: 28px; }
+  .central-main { position: relative; }
+  .central-main > .floor-picker { position: absolute; top: 4px; right: 0; }
+  .host-map .dungeon-map { width: min(100%, 66vh); flex: 0 0 auto; margin: 4px auto; gap: 3px; padding: 6px; }
+  .bestiary-book { zoom: 1.5; max-height: calc(92vh / 1.5); }
+  .host-map .tile-groups .pixel-sprite { width: 90%; height: 90%; max-width: none; max-height: none; }
+  .central-main > .tab-bar button { min-height: 52px; font-size: 1.25rem; }
+  .central-main > .info-grid { max-height: 30vh; }
+
+  .board-sidebar { padding: 14px; }
+  .board-sidebar .eyebrow { font-size: 1.05rem; }
+  .board-sidebar .group-list.compact { max-height: 44vh; gap: 8px; }
+  .board-sidebar .group-list.compact .group-summary { padding: 8px 10px; gap: 12px; }
+  .board-sidebar .group-list.compact .class-icon { width: 52px; height: 52px; }
+  .board-sidebar .class-icon .pixel-sprite { width: 46px; height: 46px; }
+  .board-sidebar .group-meta strong { font-size: 1.4rem; }
+  .board-sidebar .group-meta > span, .board-sidebar .group-meta small { font-size: 1.05rem; }
+  .board-sidebar .health-track { height: 8px; }
+
+  .board-sidebar .group-list.compact.many-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+  .board-sidebar .group-list.many-groups .group-summary { align-items: center; gap: 8px; padding: 5px 8px; }
+  .board-sidebar .group-list.many-groups .class-icon { width: 46px; height: 46px; }
+  .board-sidebar .group-list.many-groups .class-icon .pixel-sprite { width: 40px; height: 40px; }
+  .group-list.many-groups .group-meta { grid-template-columns: minmax(0, 1fr); gap: 1px; }
+  .group-list.many-groups .group-meta strong { overflow: hidden; font-size: 1.15rem; text-overflow: ellipsis; white-space: nowrap; }
+  .group-list.many-groups .group-meta > span, .group-list.many-groups .group-meta small { font-size: .92rem; }
+
+  .board-sidebar .battle-card { padding: 10px; }
+  .board-sidebar .battle-card .eyebrow { font-size: .95rem; }
+  .board-sidebar .battle-card h2 { font-size: 1.6rem; }
+  .board-sidebar .battle-card p, .board-sidebar .battle-card small { font-size: 1.05rem; }
+  .board-sidebar .feed-panel { max-height: 22vh; overflow-y: auto; }
+  .board-sidebar .feed-panel > p:not(.eyebrow) { margin: 6px 0; font-size: 1.15rem; line-height: 1.3; }
+  .board-sidebar > .danger { min-height: 50px; font-size: 1.2rem; }
 }
