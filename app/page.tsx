@@ -961,7 +961,7 @@ function ExpeditionBoard({ game, onAction, error, busy }: { game: GameState; onA
       </aside>
       {error && <p className="floating-error error">{error}</p>}
     </div>}
-    {creatureBook && typeof document !== "undefined" && createPortal(<CreatureBook entries={game.bestiary} mode={creatureBook} onClose={closeCreatureBook} />, document.body)}
+    {creatureBook && typeof document !== "undefined" && createPortal(<CreatureBook entries={game.bestiary} mode={creatureBook} onClose={closeCreatureBook} />, document.getElementById("app-stage") ?? document.body)}
   </section>;
 }
 
@@ -1658,7 +1658,7 @@ function GroupScreen({ code, game, playerId, designs, designError, onAction, err
         </div>}
       {error && <p className="error">{error}</p>}
       </div>
-      {creatureBook && typeof document !== "undefined" && createPortal(<CreatureBook entries={game.bestiary} mode={creatureBook} onClose={closeCreatureBook} />, document.body)}
+      {creatureBook && typeof document !== "undefined" && createPortal(<CreatureBook entries={game.bestiary} mode={creatureBook} onClose={closeCreatureBook} />, document.getElementById("app-stage") ?? document.body)}
       {game.phase === "exploration" && !introSeen && <HowToPlayDialog onClose={() => {
         if (introKey) saveStoredValue(introKey, "seen", true);
       }} />}
